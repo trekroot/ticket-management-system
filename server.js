@@ -1,14 +1,19 @@
-require('dotenv').config();
-
-const express = require('express');
-const cors = require('cors');
-const connectDB = require('./src/config/database');
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import connectDB from './src/config/database.js';
+import ticketRequestRoutes from './src/routes/ticketRequestRoutes.js';
+import gameRoutes from './src/routes/gameRoutes.js';
 
 const app = express();
 
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Routes
+app.use('/api/tickets', ticketRequestRoutes);
+app.use('/api/games', gameRoutes);
 
 // Test route
 app.get('/', (req, res) => {
