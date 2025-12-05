@@ -83,8 +83,7 @@ export const getGameById = async (req, res) => {
  *
  * Body: {
  *   opponent: string (required),
- *   date: Date (required),
- *   time: string (optional, e.g., "7:00 PM"),
+ *   date: Date (required - includes both date and time),
  *   venue: string (optional, defaults to "Fitzpatrick Stadium"),
  *   season: number (required, e.g., 2025),
  *   matchType: string (optional, defaults to "USL League One"),
