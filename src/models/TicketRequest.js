@@ -41,6 +41,7 @@ const ticketRequestSchema = new mongoose.Schema({
   },
 
   // Do the tickets need to be together (adjacent seats)?
+  // TODO: ignore ticketsTogether request if only 1 ticket
   ticketsTogether: {
     type: Boolean,
     default: false
