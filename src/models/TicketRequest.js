@@ -20,10 +20,11 @@ const ticketRequestSchema = new mongoose.Schema({
   },
 
   // Reference to which game this request is for
+  // NOT required - if not provided, match any request. Give date a mid-level value
   gameId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Game',
-    required: true
+    required: false
   },
 
   // Stadium section (e.g., "Section 101", "General Admission", "Supporters Section")

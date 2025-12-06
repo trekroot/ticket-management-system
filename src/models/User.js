@@ -9,6 +9,16 @@ const userSchema = new mongoose.Schema({
   authProvider: { type: String, enum: ['google', 'email', 'dirigounion'], default: 'email' },
   passwordHash: { type: String, required: true },
   role: { type: String, enum: ['admin', 'user'], default: 'user' },
-}, { timestamps: true, collection: 'users' });
+}, {
+  timestamps: true,
+  collection: 'users',
+  toJSON: {
+    transform: (doc, ret) => {
+      delete ret.passwordHash;
+      delete ret.__v;
+      return ret;
+    }
+  }
+});
 
 export default mongoose.model('User', userSchema);
