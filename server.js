@@ -4,6 +4,8 @@ import cors from 'cors';
 import connectDB from './src/config/database.js';
 import ticketRequestRoutes from './src/routes/ticketRequestRoutes.js';
 import gameRoutes from './src/routes/gameRoutes.js';
+import userRoutes from './src/routes/userRoutes.js';
+import matchmakerRoutes from './src/routes/matchmakerRoutes.js';
 
 const app = express();
 
@@ -14,6 +16,8 @@ app.use(express.json());
 // Routes
 app.use('/api/tickets', ticketRequestRoutes);
 app.use('/api/games', gameRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/matchmaker', matchmakerRoutes);
 
 // Test route
 app.get('/', (req, res) => {
