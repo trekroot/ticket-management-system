@@ -5,9 +5,20 @@ import Game from '../models/Game.js';
 
 dotenv.config();
 
-// User IDs from seedUsers.js
-const ADMIN_USER_ID = '693453ccd189f5e4bc1cb238';
-const REGULAR_USER_ID = '693453ccd189f5e4bc1cb232';
+// Users from seedUsers.js (ID + snapshot for audit trail)
+const ADMIN_USER = {
+  _id: '693453ccd189f5e4bc1cb238',
+  snapshot: { username: 'admin_1765036999', firstName: 'adminFirst', lastName: 'adminLast' }
+};
+// Separate users for allowing backend match filtering to pass (can't buy own ticket, etc)
+const REGULAR_USER_1 = {
+  _id: '693453ccd189f5e4bc1cb230',
+  snapshot: { username: 'user_1765036990', firstName: 'userFirst', lastName: 'userLast' }
+};
+const REGULAR_USER_2 = {
+  _id: '693453ccd189f5e4bc1cb231',
+  snapshot: { username: 'user_1765036991', firstName: 'userSecond', lastName: 'userLast II' }
+};
 
 // Hardcoded IDs for testing
 const BUY_REQUEST_IDS = {
@@ -49,7 +60,8 @@ async function seedTickets() {
     const buyRequests = [
       {
         _id: BUY_REQUEST_IDS.FIRST_TIME_SUPPORTER,
-        userId: REGULAR_USER_ID,
+        userId: REGULAR_USER_1._id,
+        userSnapshot: REGULAR_USER_1.snapshot,
         gameId: games[0]._id,
         section: 'Supporters Section',
         numTickets: 2,
@@ -64,7 +76,8 @@ async function seedTickets() {
       },
       {
         _id: BUY_REQUEST_IDS.FAMILY_OUTING,
-        userId: REGULAR_USER_ID,
+        userId: REGULAR_USER_1._id,
+        userSnapshot: REGULAR_USER_1.snapshot,
         gameId: games.length > 1 ? games[1]._id : games[0]._id,
         section: 'Non-Supporters Section',
         numTickets: 4,
@@ -79,7 +92,8 @@ async function seedTickets() {
       },
       {
         _id: BUY_REQUEST_IDS.BAND_MEMBER,
-        userId: ADMIN_USER_ID,
+        userId: ADMIN_USER._id,
+        userSnapshot: ADMIN_USER.snapshot,
         gameId: games[0]._id,
         section: 'Supporters Section',
         numTickets: 1,
@@ -94,7 +108,8 @@ async function seedTickets() {
       },
       {
         _id: BUY_REQUEST_IDS.FREE_REQUEST,
-        userId: REGULAR_USER_ID,
+        userId: REGULAR_USER_2._id,
+        userSnapshot: REGULAR_USER.snapshot,
         gameId: null, // Any game
         section: 'Supporters Section',
         numTickets: 2,
@@ -112,7 +127,8 @@ async function seedTickets() {
     const sellRequests = [
       {
         _id: SELL_REQUEST_IDS.SEASON_TICKET_HOLDER,
-        userId: ADMIN_USER_ID,
+        userId: ADMIN_USER._id,
+        userSnapshot: ADMIN_USER.snapshot,
         gameId: games[0]._id,
         section: 'Supporters Section',
         numTickets: 2,
@@ -124,7 +140,8 @@ async function seedTickets() {
       },
       {
         _id: SELL_REQUEST_IDS.WORK_CONFLICT,
-        userId: ADMIN_USER_ID,
+        userId: REGULAR_USER_2._id,
+        userSnapshot: REGULAR_USER_2.snapshot,
         gameId: games.length > 1 ? games[1]._id : games[0]._id,
         section: 'Non-Supporters Section',
         numTickets: 3,
@@ -136,7 +153,8 @@ async function seedTickets() {
       },
       {
         _id: SELL_REQUEST_IDS.FREE_DONATION,
-        userId: ADMIN_USER_ID,
+        userId: ADMIN_USER._id,
+        userSnapshot: ADMIN_USER.snapshot,
         gameId: games[0]._id,
         section: 'Supporters Section',
         numTickets: 1,
@@ -148,7 +166,8 @@ async function seedTickets() {
       },
       {
         _id: SELL_REQUEST_IDS.PREMIUM_SEATS,
-        userId: REGULAR_USER_ID,
+        userId: REGULAR_USER_1._id,
+        userSnapshot: REGULAR_USER_1.snapshot,
         gameId: games.length > 2 ? games[2]._id : games[0]._id,
         section: 'Specialty Seating',
         numTickets: 2,

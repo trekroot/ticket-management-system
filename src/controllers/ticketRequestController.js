@@ -89,13 +89,23 @@ export const getRequestById = async (req, res) => {
  * Create a new buy request
  *
  * Body: {
- *   userId, gameId, section, numTickets, ticketsTogether,
+ *   gameId, section, numTickets, ticketsTogether,
  *   notes, maxPrice, bandMember, firstTimeAttending, requestingFree, anySection
  * }
+ * Note: userId comes from authenticated user (req.user), not request body
  */
 export const createBuyRequest = async (req, res) => {
   try {
-    const buyRequest = await BuyRequest.create(req.body);
+    // Use authenticated user's ID and snapshot their info for audit trail
+    const buyRequest = await BuyRequest.create({
+      ...req.body,
+      userId: req.user._id,
+      userSnapshot: {
+        username: req.user.username,
+        firstName: req.user.firstName,
+        lastName: req.user.lastName
+      }
+    });
 
     // Populate references before returning
     await buyRequest.populate('userId', 'username firstName lastName');
@@ -126,13 +136,23 @@ export const createBuyRequest = async (req, res) => {
  * Create a new sell request
  *
  * Body: {
- *   userId, gameId, section, numTickets, ticketsTogether,
+ *   gameId, section, numTickets, ticketsTogether,
  *   notes, minPrice, donatingFree
  * }
+ * Note: userId comes from authenticated user (req.user), not request body
  */
 export const createSellRequest = async (req, res) => {
   try {
-    const sellRequest = await SellRequest.create(req.body);
+    // Use authenticated user's ID and snapshot their info for audit trail
+    const sellRequest = await SellRequest.create({
+      ...req.body,
+      userId: req.user._id,
+      userSnapshot: {
+        username: req.user.username,
+        firstName: req.user.firstName,
+        lastName: req.user.lastName
+      }
+    });
 
     await sellRequest.populate('userId', 'username firstName lastName');
     await sellRequest.populate('gameId', 'opponent date venue');

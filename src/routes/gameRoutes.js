@@ -1,4 +1,6 @@
 import express from 'express';
+import { verifyFirebaseToken } from '../middleware/auth.js';
+import { isAdmin } from '../middleware/authorize.js';
 import {
     getAllGames,
     getGameById,
@@ -21,17 +23,17 @@ const router = express.Router();
 
 router.route('/')
     .get(getAllGames)
-    .post(createGame);
-    
+    .post(verifyFirebaseToken, isAdmin, createGame);
+
 router.route('/:id')
-    .get(getGameById)
-    .put(updateGame)
-    .delete(deleteGame);
+    .get(verifyFirebaseToken, getGameById)
+    .put(verifyFirebaseToken, isAdmin, updateGame)
+    .delete(verifyFirebaseToken, isAdmin, deleteGame);
 
 /**
 * Convenience route for getting all games in a season
 * GET /api/games/season/:year   - All games for a specific season
 */
-router.get('/season/:year', getGamesBySeason);
+router.get('/season/:year', verifyFirebaseToken, getGamesBySeason);
 
 export default router;

@@ -1,11 +1,14 @@
 import express from 'express';
+import { verifyFirebaseToken } from '../middleware/auth.js';
+import { isOwnerOrAdmin, isAdmin } from '../middleware/authorize.js';
 import {
     getUserById,
     getAllUsers,
     createUser,
     updateUser,
     deleteUser,
-    getUserPublicProfile
+    getUserPublicProfile,
+    deactivateUser
 } from '../controllers/userController.js';
 
 const router = express.Router();
@@ -21,16 +24,19 @@ const router = express.Router();
  */
 
 router.route('/')
-    .get(getAllUsers)
-    .post(createUser);
+    .get(verifyFirebaseToken, isAdmin, getAllUsers)
+    .post(createUser);  // Registration - no auth required
+
+router.route('/:id/deactivate')
+    .put(verifyFirebaseToken, isOwnerOrAdmin, deactivateUser);
 
 router.route('/:id')
-    .get(getUserById)
-    .put(updateUser)
-    .delete(deleteUser)
+    .get(verifyFirebaseToken, isOwnerOrAdmin, getUserById)
+    .put(verifyFirebaseToken, isOwnerOrAdmin, updateUser)
+    .delete(verifyFirebaseToken, isOwnerOrAdmin, deleteUser);
 
 router.route('/:id/public')
-    .get(getUserPublicProfile)
+    .get(verifyFirebaseToken, getUserPublicProfile);
 
 
 export default router;

@@ -10,7 +10,7 @@ const users = [
         username: 'admin_1765036990',
         firstName: 'adminFirst',
         lastName: 'adminLast',
-        email: 'a1765036990@b.c',
+        email: 'a1765036999@g.a',
         discordHandle: 'adminny',
         authProvider: 'email',
         role: 'admin',
@@ -18,16 +18,28 @@ const users = [
         updatedAt: new Date('2025-12-06T16:03:24.575Z')
     },
     {
-        _id: '693453ccd189f5e4bc1cb232',
+        _id: '693453ccd189f5e4bc1cb230',
         username: 'user_1765036990',
         firstName: 'userFirst',
         lastName: 'userLast',
         email: 'u1765036990@b.c',
-        discordHandle: 'i dont have',
+        discordHandle: 'newUser',
         authProvider: 'email',
         role: 'user',
         createdAt: new Date('2025-12-06T16:03:24.575Z'),
         updatedAt: new Date('2025-12-06T16:03:24.575Z')
+    },
+    {
+        _id: '693453ccd189f5e4bc1cb231',
+        username: 'user_1765036991',
+        firstName: 'userSecond',
+        lastName: 'userLast II',
+        email: 'u1765036991@b.d',
+        discordHandle: 'HOPfannumber1',
+        authProvider: 'email',
+        role: 'user',
+        createdAt: new Date('2025-12-06T17:03:24.575Z'),
+        updatedAt: new Date('2025-12-06T17:03:24.575Z')
     }
 ];
 
