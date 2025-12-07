@@ -240,7 +240,7 @@ export async function getTicketPairings(req, res) {
 }
 
 /**
- * Get the best (top 5) pairings for a ticket
+ * Get the best (top 3) pairings for a ticket
  *
  * GET /api/matchmaker/:ticketId/best
  */
@@ -252,7 +252,7 @@ export async function getBestTicketPairings(req, res) {
       return res.status(404).json({ error });
     }
 
-    const bestPairings = pairings.slice(0, 5);
+    const bestPairings = pairings.slice(0, 3);
 
     res.json({
       sourceTicket: {
