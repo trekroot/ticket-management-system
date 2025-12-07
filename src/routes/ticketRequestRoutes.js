@@ -1,6 +1,6 @@
 import express from 'express';
 import { verifyFirebaseToken } from '../middleware/auth.js';
-import { isOwnerOrAdmin } from '../middleware/authorize.js';
+import { isOwnerOrAdmin, isAdmin } from '../middleware/authorize.js';
 import {
   getAllRequests,
   getRequestById,
@@ -41,7 +41,7 @@ const router = express.Router();
 // TODO: Add public preview endpoint for non-logged-in users (limited info)
 
 router.route('/')
-  .get(verifyFirebaseToken, getAllRequests);
+  .get(verifyFirebaseToken, isAdmin, getAllRequests);
 
 router.route('/buy')
   .post(verifyFirebaseToken, createBuyRequest);

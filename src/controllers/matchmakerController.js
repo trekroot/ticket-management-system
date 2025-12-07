@@ -13,8 +13,6 @@ const adjacencyValue = 10;
 const maxScore = gameValue + seatValue + priceValue + qtyValue + adjacencyValue;
 const minMatchScore = maxScore * 0.4;
 
-// TODO: add an endpoint to provide ALL user requests with matches (performance QOL)
-
 /**
  * Calculate a pairing score between a sale (SellRequest) and a request (BuyRequest)
  *
@@ -214,7 +212,7 @@ async function getPairingsForTicketRequest(ticketId, includeAll = false) {
  * GET /api/matchmaker/:ticketId
  * GET /api/matchmaker/:ticketId?all=true  (includes all positive scores)
  */
-export async function getPairings(req, res) {
+export async function getTicketPairings(req, res) {
   try {
     const includeAll = req.query.all === 'true';
     const { sourceTicket, pairings, error } = await getPairingsForTicketRequest(req.params.ticketId, includeAll);
@@ -242,11 +240,11 @@ export async function getPairings(req, res) {
 }
 
 /**
- * Get the best (top 5) pairings for a ticket
+ * Get the best (top 3) pairings for a ticket
  *
  * GET /api/matchmaker/:ticketId/best
  */
-export async function getBestPairings(req, res) {
+export async function getBestTicketPairings(req, res) {
   try {
     const { sourceTicket, pairings, error } = await getPairingsForTicketRequest(req.params.ticketId);
 
@@ -254,7 +252,7 @@ export async function getBestPairings(req, res) {
       return res.status(404).json({ error });
     }
 
-    const bestPairings = pairings.slice(0, 5);
+    const bestPairings = pairings.slice(0, 3);
 
     res.json({
       sourceTicket: {
@@ -271,5 +269,37 @@ export async function getBestPairings(req, res) {
   } catch (error) {
     console.error('[Matchmaker] Error finding best pairings:', error);
     res.status(500).json({ error: 'Failed to find best pairings', details: error.message });
+  }
+}
+
+export async function getAllUserTicketMatches(req, res) {
+  try {
+    let userTicketMatches = [];
+    
+    const userTicketRequests = await TicketRequest.find({
+      userId: req.user._id,
+      status: 'open'
+    }).populate('gameId');
+
+    for (const userTicketRequest of userTicketRequests) {
+      const { sourceTicket, pairings, error } = await getPairingsForTicketRequest(userTicketRequest._id, true);
+      if (error) {
+        console.error('[Matchmaker] Issue retrieving pairings for ticketId: ', userTicketRequest._id, '. Details: ', error);
+        continue;
+      }
+
+      userTicketMatches.push({
+        userTicket: sourceTicket,
+        matchedTickets: pairings,
+        numMatches: pairings.length
+      });
+    }
+
+    res.json({
+      userTicketMatches
+    })
+  } catch (error) {
+    console.error('[Matchmaker] Error finding all pairings for user:', error);
+    res.status(500).json({ error: 'Failed to find all pairings for user', details: error.message });
   }
 }

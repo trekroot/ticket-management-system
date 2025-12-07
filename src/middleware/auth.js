@@ -15,7 +15,7 @@ import User from '../models/User.js';
 
 export async function verifyFirebaseToken(req, res, next) {
   // Dev bypass - skip Firebase auth and use a test user
-  if (process.env.NODE_ENV === 'development' && process.env.BYPASS_AUTH === 'true') {
+  if (process.env.NODE_ENV === 'dev' && process.env.BYPASS_AUTH === 'true') {
     const testUser = await User.findById(process.env.BYPASS_AUTH_USER_ID);
     if (testUser) {
       req.user = testUser;
