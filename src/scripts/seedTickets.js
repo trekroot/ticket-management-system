@@ -2,43 +2,41 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { BuyRequest, SellRequest } from '../models/TicketRequest.js';
 import Game from '../models/Game.js';
+import { users } from './seedData.js';
 
 dotenv.config();
 
-// Users from seedUsers.js (ID + snapshot for audit trail)
-const ADMIN_USER = {
-  _id: '693453ccd189f5e4bc1cb238',
-  snapshot: { username: 'admin_1765036999', firstName: 'adminFirst', lastName: 'adminLast' }
-};
-// Separate users for allowing backend match filtering to pass (can't buy own ticket, etc)
-const REGULAR_USER_1 = {
-  _id: '693453ccd189f5e4bc1cb230',
-  snapshot: { username: 'user_1765036990', firstName: 'userFirst', lastName: 'userLast' }
-};
-const REGULAR_USER_2 = {
-  _id: '693453ccd189f5e4bc1cb231',
-  snapshot: { username: 'user_1765036991', firstName: 'userSecond', lastName: 'userLast II' }
-};
+// Build user references with snapshots for ticket requests
+const withSnapshot = (user) => ({
+  _id: user._id,
+  snapshot: { username: user.username, firstName: user.firstName, lastName: user.lastName }
+});
+
+export const ADMIN_USER = withSnapshot(users[0]);
+export const USER_1 = withSnapshot(users[1]);
+export const USER_2 = withSnapshot(users[2]);
 
 // Hardcoded IDs for testing
 const BUY_REQUEST_IDS = {
   FIRST_TIME_SUPPORTER: '783453ccd189f5e4bc1cb001',
   FAMILY_OUTING: '783453ccd189f5e4bc1cb002',
   BAND_MEMBER: '783453ccd189f5e4bc1cb003',
-  FREE_REQUEST: '783453ccd189f5e4bc1cb004'
+  FREE_REQUEST: '783453ccd189f5e4bc1cb004',
+  BUY_ANYTHING: '783453ccd189f5e4bc1cb005'
 };
 
 const SELL_REQUEST_IDS = {
   SEASON_TICKET_HOLDER: '783453ccd189f5e4bc1cb101',
   WORK_CONFLICT: '783453ccd189f5e4bc1cb102',
   FREE_DONATION: '783453ccd189f5e4bc1cb103',
-  PREMIUM_SEATS: '783453ccd189f5e4bc1cb104'
+  PREMIUM_SEATS: '783453ccd189f5e4bc1cb104',
+  SELL_ANYTHING: '783453ccd189f5e4bc1cb105'
 };
 
 async function seedTickets() {
   try {
     await mongoose.connect(process.env.MONGODB_URI);
-    console.log('Connected to MongoDB');
+    console.log('[seedTickets] Connected to MongoDB');
 
     // Get existing games to reference
     const manyGames = await Game.find().sort({ date: 1 }).limit(15);
@@ -60,8 +58,8 @@ async function seedTickets() {
     const buyRequests = [
       {
         _id: BUY_REQUEST_IDS.FIRST_TIME_SUPPORTER,
-        userId: REGULAR_USER_1._id,
-        userSnapshot: REGULAR_USER_1.snapshot,
+        userId: USER_1._id,
+        userSnapshot: USER_1.snapshot,
         gameId: games[0]._id,
         section: 'Supporters Section',
         numTickets: 2,
@@ -75,19 +73,19 @@ async function seedTickets() {
         status: 'open'
       },
       {
-        _id: BUY_REQUEST_IDS.FAMILY_OUTING,
-        userId: REGULAR_USER_1._id,
-        userSnapshot: REGULAR_USER_1.snapshot,
-        gameId: games.length > 1 ? games[1]._id : games[0]._id,
-        section: 'Non-Supporters Section',
-        numTickets: 4,
+        _id: BUY_REQUEST_IDS.BUY_ANYTHING,
+        userId: ADMIN_USER._id,
+        userSnapshot: ADMIN_USER.snapshot,
+        gameId: games[1]._id,
+        section: 'Supporters Section',
+        numTickets: 1,
         ticketsTogether: true,
-        maxPrice: 30,
+        maxPrice: 100,
         bandMember: false,
         firstTimeAttending: false,
         requestingFree: false,
-        anySection: false,
-        notes: 'Bringing family, need 4 seats together',
+        anySection: true,
+        notes: 'Just me!',
         status: 'open'
       },
       {
@@ -108,8 +106,8 @@ async function seedTickets() {
       },
       {
         _id: BUY_REQUEST_IDS.FREE_REQUEST,
-        userId: REGULAR_USER_2._id,
-        userSnapshot: REGULAR_USER.snapshot,
+        userId: USER_2._id,
+        userSnapshot: USER_2.snapshot,
         gameId: null, // Any game
         section: 'Supporters Section',
         numTickets: 2,
@@ -140,8 +138,8 @@ async function seedTickets() {
       },
       {
         _id: SELL_REQUEST_IDS.WORK_CONFLICT,
-        userId: REGULAR_USER_2._id,
-        userSnapshot: REGULAR_USER_2.snapshot,
+        userId: USER_2._id,
+        userSnapshot: USER_2.snapshot,
         gameId: games.length > 1 ? games[1]._id : games[0]._id,
         section: 'Non-Supporters Section',
         numTickets: 3,
@@ -166,11 +164,24 @@ async function seedTickets() {
       },
       {
         _id: SELL_REQUEST_IDS.PREMIUM_SEATS,
-        userId: REGULAR_USER_1._id,
-        userSnapshot: REGULAR_USER_1.snapshot,
+        userId: USER_1._id,
+        userSnapshot: USER_1.snapshot,
         gameId: games.length > 2 ? games[2]._id : games[0]._id,
         section: 'Specialty Seating',
         numTickets: 2,
+        ticketsTogether: true,
+        minPrice: 40,
+        donatingFree: false,
+        notes: 'Premium seats, great view',
+        status: 'open'
+      },
+      {
+        _id: SELL_REQUEST_IDS.SELL_ANYTHING,
+        userId: USER_1._id,
+        userSnapshot: USER_1.snapshot,
+        gameId: games[1]._id,
+        section: 'Specialty Seating',
+        numTickets: 1,
         ticketsTogether: true,
         minPrice: 40,
         donatingFree: false,

@@ -1,15 +1,15 @@
 {
   "name": "ticket-management-system",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Ticket management system for Hearts of Pine",
   "main": "server.js",
   "type": "module",
   "scripts": {
     "start": "node server.js",
     "dev": "npm run seed:all && nodemon server.js",
-    "seed:all": "npm run seed:games && npm run seed:users && npm run seed:tickets",
-    "seed:games": "node src/scripts/seedGames.js",
+    "seed:all": "npm run seed:users && npm run seed:games && npm run seed:tickets",
     "seed:users": "node src/scripts/seedUsers.js",
+    "seed:games": "node src/scripts/seedGames.js",
     "seed:tickets": "node src/scripts/seedTickets.js"
   },
   "keywords": [
