@@ -60,6 +60,13 @@ const ticketRequestSchema = new mongoose.Schema({
     default: 'open'
   },
 
+  // Snapshot of user info at time of creation (preserved if user is deleted)
+  userSnapshot: {
+    username: String,
+    firstName: String,
+    lastName: String
+  },
+
 }, {
   timestamps: true,           // Adds createdAt and updatedAt automatically
   collection: 'ticketrequests',

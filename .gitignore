@@ -18,3 +18,6 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+
+# Auth / Firebase
+firebase-service-account.json

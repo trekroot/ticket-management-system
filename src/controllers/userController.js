@@ -1,3 +1,4 @@
+import { TicketRequest } from '../models/TicketRequest.js';
 import User from '../models/User.js';
 
 /**
@@ -57,7 +58,7 @@ export const getUserById = async (req, res) => {
 // TODO: Implement authentication and authorization middleware for admin routes
 /**
  * GET /api/users
- * Get all users (admin only)
+ * Get all users (admin only, see router)
  */
 export const getAllUsers = async (req, res) => {
   try {
@@ -116,11 +117,6 @@ export const createUser = async (req, res) => {
 /**
  * PUT /api/users/:id
  * Update an existing user
- *
- * TODO: Protect sensitive fields for non-admins
- *   - Check req.user.role from auth middleware
- *   - If not admin, strip: role, authProvider from req.body
- *   - Admins can update any field
  */
 export const updateUser = async (req, res) => {
   try {
@@ -178,8 +174,57 @@ export const updateUser = async (req, res) => {
 };
 
 /**
+ * PUT /api/users/:id/deactivate
+ * Soft delete - deactivate user and cancel their open tickets
+ */
+export const deactivateUser = async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      {
+        deactivated: true,
+        deactivatedAt: new Date()
+      },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    // Cancel all open ticket requests for this user (single DB call)
+    const ticketResult = await TicketRequest.updateMany(
+      { userId: req.params.id, status: 'open' },
+      { status: 'cancelled' }
+    );
+
+    res.json({
+      success: true,
+      message: 'User deactivated',
+      ticketsCancelled: ticketResult.modifiedCount
+    });
+  } catch (error) {
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid user ID format'
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+/**
  * DELETE /api/users/:id
- * Delete an existing user
+ * HARD Delete - permanently remove user and their ticket requests
+ * Use for GDPR/privacy compliance when user requests full deletion
  */
 export const deleteUser = async (req, res) => {
   try {
@@ -192,9 +237,16 @@ export const deleteUser = async (req, res) => {
       });
     }
 
+    // Cancel all ticket requests for this user (single DB call)
+    const ticketResult = await TicketRequest.updateMany(
+      { userId: req.params.id, status: 'open' },
+      { status: 'cancelled' }
+    );
+    
     res.json({
       success: true,
-      message: 'User deleted'
+      message: 'User permanently deleted',
+      ticketsDeleted: ticketResult.modifiedCount
     });
   } catch (error) {
     if (error.name === 'CastError') {

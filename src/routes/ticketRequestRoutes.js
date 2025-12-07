@@ -1,4 +1,6 @@
 import express from 'express';
+import { verifyFirebaseToken } from '../middleware/auth.js';
+import { isOwnerOrAdmin } from '../middleware/authorize.js';
 import {
   getAllRequests,
   getRequestById,
@@ -36,19 +38,21 @@ const router = express.Router();
  * PUT    /api/tickets/:id      - Update a request
  * DELETE /api/tickets/:id      - Delete a request
  */
+// TODO: Add public preview endpoint for non-logged-in users (limited info)
+
 router.route('/')
-  .get(getAllRequests);
+  .get(verifyFirebaseToken, getAllRequests);
 
 router.route('/buy')
-  .post(createBuyRequest);
+  .post(verifyFirebaseToken, createBuyRequest);
 
 router.route('/sell')
-  .post(createSellRequest);
+  .post(verifyFirebaseToken, createSellRequest);
 
 router.route('/:id')
-  .get(getRequestById)
-  .put(updateRequest)
-  .delete(deleteRequest);
+  .get(verifyFirebaseToken, getRequestById)
+  .put(verifyFirebaseToken, isOwnerOrAdmin, updateRequest)
+  .delete(verifyFirebaseToken, isOwnerOrAdmin, deleteRequest);
 
 /**
  * Convenience routes for filtering
@@ -56,7 +60,7 @@ router.route('/:id')
  * GET /api/tickets/game/:gameId   - All requests for a game
  * GET /api/tickets/user/:userId   - All requests by a user
  */
-router.get('/game/:gameId', getRequestsByGame);
-router.get('/user/:userId', getRequestsByUser);
+router.get('/game/:gameId', verifyFirebaseToken, getRequestsByGame);
+router.get('/user/:userId', verifyFirebaseToken, getRequestsByUser);
 
 export default router;

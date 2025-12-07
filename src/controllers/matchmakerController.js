@@ -13,6 +13,8 @@ const adjacencyValue = 10;
 const maxScore = gameValue + seatValue + priceValue + qtyValue + adjacencyValue;
 const minMatchScore = maxScore * 0.4;
 
+// TODO: add an endpoint to provide ALL user requests with matches (performance QOL)
+
 /**
  * Calculate a pairing score between a sale (SellRequest) and a request (BuyRequest)
  *
@@ -20,7 +22,7 @@ const minMatchScore = maxScore * 0.4;
  * @param {Object} requestTicket - The BuyRequest document
  * @returns {Object} { score: Number, reasons: Array }
  */
-function calculatePairingScore(saleTicket, requestTicket) {
+export function calculatePairingScore(saleTicket, requestTicket) {
   let score = 0;
   const reasons = [];
 
@@ -169,9 +171,11 @@ async function getPairingsForTicketRequest(ticketId, includeAll = false) {
   console.log(`[Matchmaker] Found ${nearbyGames.length} games within date range`);
 
   // Find all active tickets of opposite type with same/nearby game
+  // Exclude tickets from the same user (can't match with yourself!)
   const potentialMatches = await OppositeModel.find({
     gameId: { $in: nearbyGameIds },
-    status: 'open'
+    status: 'open',
+    userId: { $ne: sourceTicket.userId }
   }).populate('gameId');
 
   console.log(`[Matchmaker] Found ${potentialMatches.length} potential matches`);
@@ -210,7 +214,7 @@ async function getPairingsForTicketRequest(ticketId, includeAll = false) {
  * GET /api/matchmaker/:ticketId
  * GET /api/matchmaker/:ticketId?all=true  (includes all positive scores)
  */
-async function getPairings(req, res) {
+export async function getPairings(req, res) {
   try {
     const includeAll = req.query.all === 'true';
     const { sourceTicket, pairings, error } = await getPairingsForTicketRequest(req.params.ticketId, includeAll);
@@ -242,7 +246,7 @@ async function getPairings(req, res) {
  *
  * GET /api/matchmaker/:ticketId/best
  */
-async function getBestPairings(req, res) {
+export async function getBestPairings(req, res) {
   try {
     const { sourceTicket, pairings, error } = await getPairingsForTicketRequest(req.params.ticketId);
 
@@ -269,5 +273,3 @@ async function getBestPairings(req, res) {
     res.status(500).json({ error: 'Failed to find best pairings', details: error.message });
   }
 }
-
-export { calculatePairingScore, getPairings, getBestPairings };
