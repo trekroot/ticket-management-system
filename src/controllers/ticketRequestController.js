@@ -2,6 +2,7 @@ import { TicketRequest, BuyRequest, SellRequest } from '../models/TicketRequest.
 // Import models so Mongoose registers them for populate()
 import '../models/User.js';
 import '../models/Game.js';
+import { addOwnerFlag } from '../utils/ticketHelper.js';
 
 /**
  * CONTROLLER: ticketRequestController
@@ -37,15 +38,27 @@ export const getAllRequests = async (req, res) => {
     if (gameId) filter.gameId = gameId;
     if (status) filter.status = status;
 
-    const requests = await Model.find(filter)
+    const ticketRequests = await Model.find(filter)
       .populate('userId', 'username firstName lastName email')  // Get user details
       .populate('gameId', 'opponent date venue')                // Get game details
       .sort({ createdAt: -1 });                                 // Newest first
 
+    const userId = req.user?._id;
+
+    const flaggedRequests = ticketRequests.map(ticket => {
+      const result = addOwnerFlag(ticket, userId);
+      if (!req.user) {
+        result.userId = null;
+        result.userSnapshot = { firstName: "••••••", lastName: "••••••", username: null };
+        result.notes = null;
+      }
+      return result;
+    });
+
     res.json({
       success: true,
-      count: requests.length,
-      data: requests
+      count: flaggedRequests.length,
+      data: flaggedRequests
     });
   } catch (error) {
     res.status(500).json({
@@ -61,20 +74,22 @@ export const getAllRequests = async (req, res) => {
  */
 export const getRequestById = async (req, res) => {
   try {
-    const request = await TicketRequest.findById(req.params.id)
+    const ticketRequest = await TicketRequest.findById(req.params.id)
       .populate('userId', 'username firstName lastName email')
       .populate('gameId', 'opponent date venue time');
 
-    if (!request) {
+    if (!ticketRequest) {
       return res.status(404).json({
         success: false,
         error: 'Ticket request not found'
       });
     }
 
+    const ticketData = addOwnerFlag(ticketRequest, req.user?._id);
+
     res.json({
       success: true,
-      data: request
+      data: ticketData
     });
   } catch (error) {
     res.status(500).json({
@@ -288,14 +303,25 @@ export const getRequestsByGame = async (req, res) => {
 };
 
 /**
- * GET /api/tickets/user/:userId
- * Get all requests for a specific user
+ * GET /api/tickets/user          - Get own requests (any authenticated user)
+ * GET /api/tickets/user/:userId  - Get specific user's requests (admin only)
  *
- * Useful for a "My Requests" dashboard view.
+ * Useful for a "My Requests" dashboard view or admin user lookup.
  */
 export const getRequestsByUser = async (req, res) => {
   try {
-    const { userId } = req.params;
+    let userId = req.user._id;
+
+    // If userId param provided, check admin permission
+    if (req.params.userId) {
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          error: 'Admin access required to view other users\' requests'
+        });
+      }
+      userId = req.params.userId;
+    }
     const { type, status } = req.query;
 
     let Model = TicketRequest;
@@ -305,14 +331,24 @@ export const getRequestsByUser = async (req, res) => {
     const filter = { userId };
     if (status) filter.status = status;
 
-    const requests = await Model.find(filter)
+    const ticketRequests = await Model.find(filter)
       .populate('gameId', 'opponent date venue')
       .sort({ createdAt: -1 });
 
+    const flaggedRequests = ticketRequests.map(ticket => {
+      const result = addOwnerFlag(ticket, userId);
+      if (!req.user) {
+        result.userId = null;
+        result.userSnapshot = { firstName: "••••••", lastName: "••••••", username: null };
+        result.notes = null;
+      }
+      return result;
+    });
+
     res.json({
       success: true,
-      count: requests.length,
-      data: requests
+      count: flaggedRequests.length,
+      data: flaggedRequests
     });
   } catch (error) {
     res.status(500).json({

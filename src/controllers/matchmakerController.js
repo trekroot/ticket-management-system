@@ -218,10 +218,11 @@ export async function getTicketPairings(req, res) {
     const { sourceTicket, pairings, error } = await getPairingsForTicketRequest(req.params.ticketId, includeAll);
 
     if (error) {
-      return res.status(404).json({ error });
+      return res.status(404).json({ success: false, error });
     }
 
     res.json({
+      success: true,
       sourceTicket: {
         _id: sourceTicket._id,
         type: sourceTicket.__t,
@@ -235,7 +236,7 @@ export async function getTicketPairings(req, res) {
 
   } catch (error) {
     console.error('[Matchmaker] Error finding pairings:', error);
-    res.status(500).json({ error: 'Failed to find pairings', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to find pairings', details: error.message });
   }
 }
 
@@ -249,12 +250,13 @@ export async function getBestTicketPairings(req, res) {
     const { sourceTicket, pairings, error } = await getPairingsForTicketRequest(req.params.ticketId);
 
     if (error) {
-      return res.status(404).json({ error });
+      return res.status(404).json({ success: false, error });
     }
 
     const bestPairings = pairings.slice(0, 3);
 
     res.json({
+      success: true,
       sourceTicket: {
         _id: sourceTicket._id,
         type: sourceTicket.__t,
@@ -268,7 +270,7 @@ export async function getBestTicketPairings(req, res) {
 
   } catch (error) {
     console.error('[Matchmaker] Error finding best pairings:', error);
-    res.status(500).json({ error: 'Failed to find best pairings', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to find best pairings', details: error.message });
   }
 }
 
@@ -296,10 +298,11 @@ export async function getAllUserTicketMatches(req, res) {
     }
 
     res.json({
+      success: true,
       userTicketMatches
-    })
+    });
   } catch (error) {
     console.error('[Matchmaker] Error finding all pairings for user:', error);
-    res.status(500).json({ error: 'Failed to find all pairings for user', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to find all pairings for user', details: error.message });
   }
 }

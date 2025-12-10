@@ -29,7 +29,7 @@ export async function isOwnerOrAdmin(req, res, next) {
 
   // For regular users, check ownership
   try {
-    const ticket = await TicketRequest.findById(req.params.id);
+    const ticket = await TicketRequest.findById(req.params.ticketId);
 
     if (!ticket) {
       return res.status(404).json({ error: 'Ticket not found' });
