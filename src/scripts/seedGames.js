@@ -10,9 +10,9 @@ async function seedGames() {
     await mongoose.connect(process.env.MONGODB_URI);
     console.log('[seedGames] Connected to MongoDB');
 
-    // Clear existing games for 2025
-    await Game.deleteMany({ season: 2025 });
-    console.log('Cleared existing 2025 games');
+    // Clear existing games
+    await Game.deleteMany();
+    console.log('Cleared existing games');
 
     // Insert new games
     const result = await Game.insertMany(games);

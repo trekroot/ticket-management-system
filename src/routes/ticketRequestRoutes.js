@@ -1,5 +1,5 @@
 import express from 'express';
-import { verifyFirebaseToken } from '../middleware/auth.js';
+import { verifyFirebaseToken, optionalAuth } from '../middleware/auth.js';
 import { isOwnerOrAdmin, isAdmin } from '../middleware/authorize.js';
 import {
   getAllRequests,
@@ -41,13 +41,15 @@ const router = express.Router();
 // TODO: Add public preview endpoint for non-logged-in users (limited info)
 
 router.route('/')
-  .get(verifyFirebaseToken, isAdmin, getAllRequests);
+  .get(optionalAuth, getAllRequests);
 
 router.route('/buy')
   .post(verifyFirebaseToken, createBuyRequest);
 
 router.route('/sell')
   .post(verifyFirebaseToken, createSellRequest);
+
+router.get('/user', verifyFirebaseToken, getRequestsByUser);
 
 router.route('/:id')
   .get(verifyFirebaseToken, getRequestById)
@@ -61,6 +63,6 @@ router.route('/:id')
  * GET /api/tickets/user/:userId   - All requests by a user
  */
 router.get('/game/:gameId', verifyFirebaseToken, getRequestsByGame);
-router.get('/user/:userId', verifyFirebaseToken, getRequestsByUser);
+router.get('/user/:userId', verifyFirebaseToken, isAdmin, getRequestsByUser);
 
 export default router;

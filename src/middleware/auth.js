@@ -54,3 +54,28 @@ export async function verifyFirebaseToken(req, res, next) {
     return res.status(403).json({ error: 'Invalid or expired token' });
   }
 }
+
+export async function optionalAuth( req, res, next) {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return next();
+  }
+  
+  // Extract token
+  const token = authHeader.split(' ')[1];
+
+  try {
+    // Firebase verify: signature, expiry, and project
+    const decodedToken = await admin.auth().verifyIdToken(token);
+
+    // Look up the MongoDB user by their Firebase UID
+    const user = await User.findOne({ firebaseUid: decodedToken.uid });
+
+    // Attach full MongoDB user to request (has _id, role, etc.)
+    if (user) req.user = user
+  } catch (error) {
+    console.error('Token verification failed, proceed with empty user', error.message);
+  }
+  next();
+}

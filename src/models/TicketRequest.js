@@ -7,7 +7,7 @@ import mongoose from 'mongoose';
  * We use Mongoose discriminators to create "child" models (BuyRequest, SellRequest)
  * that inherit these fields and add their own type-specific fields.
  *
- * All documents are stored in a single 'ticketrequests' collection.
+ * All documents are stored in a single 'ticketrequest' collection.
  * Mongoose adds a '__t' field (discriminator key) to identify the type.
  */
 const ticketRequestSchema = new mongoose.Schema({
@@ -26,12 +26,19 @@ const ticketRequestSchema = new mongoose.Schema({
     ref: 'Game',
     required: false
   },
-
-  // Stadium section (e.g., "Section 101", "General Admission", "Supporters Section")
+  
+  // TODO: Should we have more granularity...especially for Sellers + seat numbers
+  // Stadium section
   section: {
     type: String,
     enum: ['Supporters Section', 'Non-Supporters Section', 'Specialty Seating'],
-    required: true
+    required: function() {
+      // Sellers always need a section
+      if (this.__t === 'SellRequest') return true;
+      // Buyers only need section if not selecting "any"
+      if (this.__t === 'BuyRequest') return !this.anySection;
+      return true;
+    }
   },
 
   // How many tickets
@@ -136,6 +143,12 @@ const sellRequestSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+
+  // // Specific Seat and Section?
+  // seats: {
+  //   type: Boolean,
+  //   default: false
+  // },
 });
 
 // Create discriminator models
@@ -150,7 +163,7 @@ const SellRequest = TicketRequest.discriminator('SellRequest', sellRequestSchema
  * const buy = await BuyRequest.create({
  *   userId: someUserId,
  *   gameId: someGameId,
- *   section: 'Section 101',
+ *   section: 'Supporters Section,
  *   numTickets: 2,
  *   maxPrice: 25,
  *   firstTimeAttending: true
@@ -160,7 +173,7 @@ const SellRequest = TicketRequest.discriminator('SellRequest', sellRequestSchema
  * const sell = await SellRequest.create({
  *   userId: someUserId,
  *   gameId: someGameId,
- *   section: 'Section 101',
+ *   section: 'Non-supporters Section',
  *   numTickets: 2,
  *   minPrice: 20,
  *   donatingFree: false

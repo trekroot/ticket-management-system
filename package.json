@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "npm run seed:all && nodemon server.js",
+    "dev": "nodemon server.js",
+    "dev-seed-data": "npm run seed:all && nodemon server.js",
     "seed:all": "npm run seed:users && npm run seed:games && npm run seed:tickets",
     "seed:users": "node src/scripts/seedUsers.js",
     "seed:games": "node src/scripts/seedGames.js",
