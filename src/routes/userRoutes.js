@@ -8,7 +8,8 @@ import {
     updateUser,
     deleteUser,
     getUserPublicProfile,
-    deactivateUser
+    deactivateUser,
+    verifyUserExists
 } from '../controllers/userController.js';
 
 const router = express.Router();
@@ -37,6 +38,9 @@ router.route('/:id')
 
 router.route('/:id/public')
     .get(verifyFirebaseToken, getUserPublicProfile);
+
+router.route('/verifyAccount/:firebaseUid')
+    .get(verifyFirebaseToken, verifyUserExists);
 
 
 export default router;

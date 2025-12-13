@@ -11,7 +11,8 @@
     "seed:all": "npm run seed:users && npm run seed:games && npm run seed:tickets",
     "seed:users": "node src/scripts/seedUsers.js",
     "seed:games": "node src/scripts/seedGames.js",
-    "seed:tickets": "node src/scripts/seedTickets.js"
+    "seed:tickets": "node src/scripts/seedTickets.js",
+    "lint": "eslint ."
   },
   "keywords": [
     "tickets",
@@ -28,6 +29,9 @@
     "mongoose": "^9.0.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "eslint": "^9.39.2",
+    "globals": "^16.5.0",
     "nodemon": "^3.1.11"
   }
 }
