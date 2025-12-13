@@ -12,7 +12,9 @@
     "seed:users": "node src/scripts/seedUsers.js",
     "seed:games": "node src/scripts/seedGames.js",
     "seed:tickets": "node src/scripts/seedTickets.js",
-    "lint": "eslint ."
+    "precommit": "npm run lint && npm audit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "keywords": [
     "tickets",
