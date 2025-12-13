@@ -1,8 +1,7 @@
 import { TicketRequest, BuyRequest, SellRequest } from '../models/TicketRequest.js';
 // Import models so Mongoose registers them for populate()
-import '../models/User.js';
-import '../models/Game.js';
-import { addOwnerFlag } from '../utils/ticketHelper.js';
+import Game from '../models/Game.js';
+import { addOwnerFlag, addOwnerFlagTrimLastName } from '../utils/ticketHelper.js';
 
 /**
  * CONTROLLER: ticketRequestController
@@ -26,7 +25,7 @@ import { addOwnerFlag } from '../utils/ticketHelper.js';
  */
 export const getAllRequests = async (req, res) => {
   try {
-    const { type, gameId, status } = req.query;
+    const { type, status } = req.query;
 
     // Choose which model to query based on type filter
     let Model = TicketRequest;  // Default: query all types
@@ -35,8 +34,16 @@ export const getAllRequests = async (req, res) => {
 
     // Build filter object from query params
     const filter = {};
-    if (gameId) filter.gameId = gameId;
+    // if (gameId) filter.gameId = gameId;
     if (status) filter.status = status;
+
+    // Add to filter
+    // Find games within the date range
+    const nearbyGames = await Game.find({
+      date: { $gte: new Date()}
+    });
+    const futureGameIds = nearbyGames.map(g => g._id);
+    filter.gameId = { $in: futureGameIds };
 
     const ticketRequests = await Model.find(filter)
       .populate('userId', 'username firstName lastName email')  // Get user details
@@ -46,13 +53,7 @@ export const getAllRequests = async (req, res) => {
     const userId = req.user?._id;
 
     const flaggedRequests = ticketRequests.map(ticket => {
-      const result = addOwnerFlag(ticket, userId);
-      if (!req.user) {
-        result.userId = null;
-        result.userSnapshot = { firstName: "••••••", lastName: "••••••", username: null };
-        result.notes = null;
-      }
-      return result;
+      return addOwnerFlagTrimLastName(ticket, userId);
     });
 
     res.json({
@@ -85,7 +86,7 @@ export const getRequestById = async (req, res) => {
       });
     }
 
-    const ticketData = addOwnerFlag(ticketRequest, req.user?._id);
+    const ticketData = addOwnerFlagTrimLastName(ticketRequest, req.user?._id);
 
     res.json({
       success: true,
