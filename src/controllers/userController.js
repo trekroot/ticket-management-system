@@ -296,3 +296,41 @@ export const getUserPublicProfile = async (req, res) => {
     });
   }
 };
+
+
+/**
+ * GET /api/users/verifyAccount/:firebaseUid
+ * Check if a user has a valid account
+ */
+export const verifyUserExists = async (req, res) => {
+  try {
+    const user = await User.findOne({firebaseUid: req.params.firebaseUid});
+  
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        data: false,
+        error: 'User does not exist with provided Firebase ID'
+      });
+    }
+  
+    res.json({
+      success: true,
+      data: true
+    });
+  } catch (error) {
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        data: false,
+        error: 'Invalid user ID format'
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      data: false,
+      error: error.message
+    });
+  }
+};
