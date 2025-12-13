@@ -190,8 +190,17 @@ async function getPairingsForTicketRequest(ticketId, includeAll = false) {
     // Include based on threshold: all positive scores if includeAll, otherwise >= minMatchScore
     const threshold = includeAll ? 0 : minMatchScore;
     if (score > threshold) {
+      // Convert to object and trim lastName for privacy
+      const matchObj = match.toObject();
+      if (matchObj.userSnapshot?.lastName) {
+        matchObj.userSnapshot.lastName = matchObj.userSnapshot.lastName.charAt(0);
+      }
+      if (matchObj.userId?.lastName) {
+        matchObj.userId.lastName = matchObj.userId.lastName.charAt(0);
+      }
+
       pairings.push({
-        ticket: match,
+        ticket: matchObj,
         score,
         reasons
       });

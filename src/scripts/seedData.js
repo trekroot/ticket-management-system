@@ -73,7 +73,7 @@ export const games = [
   { opponent: 'Rhode Island FC', date: new Date('2026-04-15T19:00:00-04:00'), venue: 'Lewiston High School', season: 2026, matchType: 'Cup' },
 
   // Home games at Fitzpatrick Stadium
-  { opponent: 'One Knoxville SC', date: new Date('2026-05-04T18:00:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One' },
+  { opponent: 'One Knoxville SC', date: new Date('2026-04-11T18:00:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One' },
   { opponent: 'FC Naples', date: new Date('2026-05-17T17:30:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One' },
   { opponent: 'Detroit City FC', date: new Date('2026-05-31T17:00:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One' },
   { opponent: 'Union Omaha', date: new Date('2026-06-15T18:00:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One' },

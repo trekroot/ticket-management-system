@@ -19,7 +19,7 @@ const USER_FIELDS = {
   private: 'username firstName lastName email discordHandle authProvider role createdAt',
 
   // Public profile - for matched users to see each other
-  public: 'firstName discordHandle'
+  public: 'firstName lastName discordHandle'
 };
 
 /**
@@ -120,11 +120,6 @@ export const createUser = async (req, res) => {
  */
 export const updateUser = async (req, res) => {
   try {
-    // TODO: Add field protection based on user role
-    // if (req.user?.role !== 'admin') {
-    //   delete req.body.role;
-    //   delete req.body.authProvider;
-    // }
 
     const user = await User.findByIdAndUpdate(
       req.params.id,
@@ -269,15 +264,17 @@ export const deleteUser = async (req, res) => {
  */
 export const getUserPublicProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select(USER_FIELDS.public);
-  
+    const user = await User.findById(req.params.id).select(USER_FIELDS.public).lean();
+
     if (!user) {
       return res.status(404).json({
         success: false,
         error: 'User not found'
       });
     }
-  
+
+    user.lastName = user.lastName?.charAt(0) || '';
+
     res.json({
       success: true,
       data: user

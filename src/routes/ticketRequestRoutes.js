@@ -52,7 +52,7 @@ router.route('/sell')
 router.get('/user', verifyFirebaseToken, getRequestsByUser);
 
 router.route('/:id')
-  .get(verifyFirebaseToken, getRequestById)
+  .get(verifyFirebaseToken, getRequestById) // make a public-safe endpoint with reduced user info
   .put(verifyFirebaseToken, isOwnerOrAdmin, updateRequest)
   .delete(verifyFirebaseToken, isOwnerOrAdmin, deleteRequest);
 
