@@ -1,6 +1,6 @@
 import express from 'express';
 import { verifyFirebaseToken } from '../middleware/auth.js';
-import { isOwnerOrAdmin, isAdmin } from '../middleware/authorize.js';
+import { isUserOwnerOrAdmin, isAdmin } from '../middleware/authorize.js';
 import {
     getUserById,
     getAllUsers,
@@ -9,7 +9,8 @@ import {
     deleteUser,
     getUserPublicProfile,
     deactivateUser,
-    verifyUserExists
+    verifyUserExists,
+    getUserByFirebaseId
 } from '../controllers/userController.js';
 
 const router = express.Router();
@@ -24,23 +25,28 @@ const router = express.Router();
  * GET       /api/users/:id/public  - Get user's public profile
  */
 
-router.route('/')
-    .get(verifyFirebaseToken, isAdmin, getAllUsers)
-    .post(createUser);  // Registration - no auth required
 
-router.route('/:id/deactivate')
-    .put(verifyFirebaseToken, isOwnerOrAdmin, deactivateUser);
-
-router.route('/:id')
-    .get(verifyFirebaseToken, isOwnerOrAdmin, getUserById)
-    .put(verifyFirebaseToken, isOwnerOrAdmin, updateUser)
-    .delete(verifyFirebaseToken, isOwnerOrAdmin, deleteUser);
-
-router.route('/:id/public')
-    .get(verifyFirebaseToken, getUserPublicProfile);
+router.route('/firebase/:firebaseUid')
+    .get(verifyFirebaseToken, getUserByFirebaseId);
 
 router.route('/verifyAccount/:firebaseUid')
     .get(verifyFirebaseToken, verifyUserExists);
 
+router.route('/')
+    .get(verifyFirebaseToken, isAdmin, getAllUsers)
+    .post(createUser);  // Registration - no auth required
+
+// Parameter routes with suffixes
+router.route('/:id/deactivate')
+    .put(verifyFirebaseToken, isUserOwnerOrAdmin, deactivateUser);
+
+router.route('/:id/public')
+    .get(verifyFirebaseToken, getUserPublicProfile);
+
+// Plain parameter routes LAST
+router.route('/:id')
+    .get(verifyFirebaseToken, isUserOwnerOrAdmin, getUserById)
+    .put(verifyFirebaseToken, isUserOwnerOrAdmin, updateUser)
+    .delete(verifyFirebaseToken, isUserOwnerOrAdmin, deleteUser);
 
 export default router;

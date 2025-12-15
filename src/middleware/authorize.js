@@ -21,15 +21,18 @@ export function isAdmin(req, res, next) {
  * Allow if user is admin OR owns the ticket
  * Use for: PUT /api/tickets/:id, DELETE /api/tickets/:id
  */
-export async function isOwnerOrAdmin(req, res, next) {
+export async function isTicketOwnerOrAdmin(req, res, next) {
   // Admins can do anything
   if (req.user.role === 'admin') {
     return next();
   }
 
   // For regular users, check ownership
+  // Support both :id and :ticketId param names
+  // TODO: FIX THE USAGES OF THIS - MESSY
+  const ticketId = req.params.id || req.params.ticketId;
   try {
-    const ticket = await TicketRequest.findById(req.params.ticketId);
+    const ticket = await TicketRequest.findById(ticketId);
 
     if (!ticket) {
       return res.status(404).json({ error: 'Ticket not found' });
@@ -47,6 +50,24 @@ export async function isOwnerOrAdmin(req, res, next) {
     console.error('Authorization check failed:', error.message);
     return res.status(500).json({ error: 'Authorization check failed' });
   }
+}
+
+/**
+ * Allow if user is admin OR accessing their own user record
+ * Use for: GET/PUT/DELETE /api/users/:id
+ */
+export function isUserOwnerOrAdmin(req, res, next) {
+  // Admins can do anything
+  if (req.user.role === 'admin') {
+    return next();
+  }
+
+  // Check if user is accessing their own record
+  if (req.params.id !== req.user._id.toString()) {
+    return res.status(403).json({ error: 'Not authorized to access this user' });
+  }
+
+  next();
 }
 
 /**

@@ -55,6 +55,39 @@ export const getUserById = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/users/firebase/:firebaseUid
+ * Get a single user by their MongoDB ObjectId
+ */
+export const getUserByFirebaseId = async (req, res) => {
+  try {
+    const user = await User.findOne({firebaseUid: req.params.firebaseUid}).select(USER_FIELDS.private);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'Firebase ID User not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: user
+    });
+  } catch (error) {
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid user Firebase ID format'
+      });
+    }
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
 // TODO: Implement authentication and authorization middleware for admin routes
 /**
  * GET /api/users
