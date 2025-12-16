@@ -10,7 +10,13 @@ import matchmakerRoutes from './src/routes/matchmakerRoutes.js';
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://ticket-management-system.s3-website-us-east-1.amazonaws.com',
+    'http://localhost:5173'  // Keep for local dev
+  ],
+  credentials: true
+}));
 app.use(express.json());
 
 // Routes
