@@ -15,7 +15,9 @@ app.use(cors({
     'http://ticket-management-system.s3-website-us-east-1.amazonaws.com',
     'http://localhost:5173'  // Keep for local dev
   ],
-  credentials: true
+  credentials: true,  // CRITICAL - allows cookies/auth headers
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 
