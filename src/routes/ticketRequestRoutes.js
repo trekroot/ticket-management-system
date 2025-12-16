@@ -1,6 +1,6 @@
 import express from 'express';
 import { verifyFirebaseToken, optionalAuth } from '../middleware/auth.js';
-import { isOwnerOrAdmin, isAdmin } from '../middleware/authorize.js';
+import { isTicketOwnerOrAdmin, isAdmin } from '../middleware/authorize.js';
 import {
   getAllRequests,
   getRequestById,
@@ -40,29 +40,37 @@ const router = express.Router();
  */
 // TODO: Add public preview endpoint for non-logged-in users (limited info)
 
+// Base route
 router.route('/')
   .get(optionalAuth, getAllRequests);
 
+// Literal prefix routes FIRST
 router.route('/buy')
   .post(verifyFirebaseToken, createBuyRequest);
 
 router.route('/sell')
   .post(verifyFirebaseToken, createSellRequest);
 
-router.get('/user', verifyFirebaseToken, getRequestsByUser);
-
-router.route('/:id')
-  .get(verifyFirebaseToken, getRequestById) // make a public-safe endpoint with reduced user info
-  .put(verifyFirebaseToken, isOwnerOrAdmin, updateRequest)
-  .delete(verifyFirebaseToken, isOwnerOrAdmin, deleteRequest);
-
 /**
  * Convenience routes for filtering
  *
  * GET /api/tickets/game/:gameId   - All requests for a game
- * GET /api/tickets/user/:userId   - All requests by a user
+ * GET /api/tickets/user           - All requests for current user
+ * GET /api/tickets/user/:userId   - All requests by a user (admin only)
  */
-router.get('/game/:gameId', verifyFirebaseToken, getRequestsByGame);
-router.get('/user/:userId', verifyFirebaseToken, isAdmin, getRequestsByUser);
+router.route('/user')
+  .get(verifyFirebaseToken, getRequestsByUser);
+
+  router.route('/user/:userId')
+  .get(verifyFirebaseToken, isAdmin, getRequestsByUser);
+  
+router.route('/game/:id')
+  .get(verifyFirebaseToken, getRequestsByGame);
+
+// Parameter routes LAST
+router.route('/:id')
+  .get(verifyFirebaseToken, getRequestById) // make a public-safe endpoint with reduced user info
+  .put(verifyFirebaseToken, isTicketOwnerOrAdmin, updateRequest)
+  .delete(verifyFirebaseToken, isTicketOwnerOrAdmin, deleteRequest);
 
 export default router;
