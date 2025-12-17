@@ -61,7 +61,7 @@ async function seedTickets() {
         userId: USER_1._id,
         userSnapshot: USER_1.snapshot,
         gameId: games[0]._id,
-        section: 'Supporters Section',
+        sectionType: 'supporters',
         numTickets: 2,
         ticketsTogether: true,
         maxPrice: 25,
@@ -77,7 +77,7 @@ async function seedTickets() {
         userId: ADMIN_USER._id,
         userSnapshot: ADMIN_USER.snapshot,
         gameId: games[1]._id,
-        section: 'Supporters Section',
+        sectionType: 'supporters',
         numTickets: 1,
         ticketsTogether: true,
         maxPrice: 100,
@@ -93,7 +93,7 @@ async function seedTickets() {
         userId: ADMIN_USER._id,
         userSnapshot: ADMIN_USER.snapshot,
         gameId: games[0]._id,
-        section: 'Supporters Section',
+        sectionType: 'supporters',
         numTickets: 1,
         ticketsTogether: false,
         maxPrice: 20,
@@ -109,7 +109,7 @@ async function seedTickets() {
         userId: USER_2._id,
         userSnapshot: USER_2.snapshot,
         gameId: null, // Any game
-        section: 'Supporters Section',
+        sectionType: 'supporters',
         numTickets: 2,
         ticketsTogether: true,
         maxPrice: 0,
@@ -128,9 +128,12 @@ async function seedTickets() {
         userId: ADMIN_USER._id,
         userSnapshot: ADMIN_USER.snapshot,
         gameId: games[0]._id,
-        section: 'Supporters Section',
+        sectionType: 'supporters',
+        sectionNumber: 118,
+        row: 'D',
+        seats: [5, 9],
         numTickets: 2,
-        ticketsTogether: true,
+        ticketsTogether: false,
         minPrice: 20,
         donatingFree: false,
         notes: 'Season ticket holder, can\'t make this game',
@@ -141,7 +144,10 @@ async function seedTickets() {
         userId: USER_2._id,
         userSnapshot: USER_2.snapshot,
         gameId: games.length > 1 ? games[1]._id : games[0]._id,
-        section: 'Non-Supporters Section',
+        sectionType: 'standard',
+        sectionNumber: 105,
+        row: 'B',
+        seats: [10, 11, 12],
         numTickets: 3,
         ticketsTogether: true,
         minPrice: 25,
@@ -154,7 +160,8 @@ async function seedTickets() {
         userId: ADMIN_USER._id,
         userSnapshot: ADMIN_USER.snapshot,
         gameId: games[0]._id,
-        section: 'Supporters Section',
+        sectionType: 'supporters',
+        sectionNumber: 119, // GA section
         numTickets: 1,
         ticketsTogether: false,
         minPrice: 0,
@@ -167,12 +174,14 @@ async function seedTickets() {
         userId: USER_1._id,
         userSnapshot: USER_1.snapshot,
         gameId: games.length > 2 ? games[2]._id : games[0]._id,
-        section: 'Specialty Seating',
+        sectionType: 'highroller',
+        sectionNumber: 'FC-3',
+        ticketNumbers: [8, 9],
         numTickets: 2,
         ticketsTogether: true,
         minPrice: 40,
         donatingFree: false,
-        notes: 'Premium seats, great view',
+        notes: 'Highroller seats, great view',
         status: 'open'
       },
       {
@@ -180,12 +189,14 @@ async function seedTickets() {
         userId: USER_1._id,
         userSnapshot: USER_1.snapshot,
         gameId: games[1]._id,
-        section: 'Specialty Seating',
+        sectionType: 'deweys',
+        sectionNumber: 4,
+        ticketNumbers: [22],
         numTickets: 1,
         ticketsTogether: true,
-        minPrice: 40,
+        minPrice: 3,
         donatingFree: false,
-        notes: 'Premium seats, great view',
+        notes: '$3 Deweys section',
         status: 'open'
       }
     ];
@@ -202,7 +213,7 @@ async function seedTickets() {
     for (const buy of insertedBuys) {
       const game = games.find(g => g._id.equals(buy.gameId));
       const gameName = game ? `vs ${game.opponent}` : 'Any game';
-      console.log(`  ${buy._id} - ${buy.numTickets} ticket(s) for ${gameName} (${buy.section})`);
+      console.log(`  ${buy._id} - ${buy.numTickets} ticket(s) for ${gameName} (${buy.sectionType})`);
     }
 
     console.log('\nSell requests seeded:');
