@@ -3,9 +3,10 @@ import mongoose from "mongoose";
 const gameSchema = new mongoose.Schema({
   opponent: { type: String, required: true },
   date: { type: Date, required: true },  // Includes both date and time
+  timeTbd: Boolean,
   venue: {
     type: String,
-    enum: ['Fitzpatrick Stadium', 'Franklin Athletic Complex', 'Lewiston High School'],
+    // enum: ['Fitzpatrick Stadium', 'Franklin Athletic Complex', 'Lewiston High School'],
     default: 'Fitzpatrick Stadium'
   },
   season: { type: Number, required: true },
