@@ -39,57 +39,37 @@ export const users = [
 ];
 
 export const games = [
-  // Friendlies & Cup (Lewiston High School)
-  { opponent: 'CD Faialense', date: new Date('2025-03-20T18:30:00-04:00'), venue: 'Lewiston High School', season: 2025, matchType: 'Friendly' },
-  { opponent: 'Hartford Athletic', date: new Date('2025-04-02T18:30:00-04:00'), venue: 'Lewiston High School', season: 2025, matchType: 'U.S. Open Cup' },
-  { opponent: 'Rhode Island FC', date: new Date('2025-04-15T19:00:00-04:00'), venue: 'Lewiston High School', season: 2025, matchType: 'Cup' },
-
-  // Home games at Fitzpatrick Stadium
-  { opponent: 'One Knoxville SC', date: new Date('2025-05-04T18:00:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2025, matchType: 'USL League One' },
-  { opponent: 'FC Naples', date: new Date('2025-05-17T17:30:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2025, matchType: 'USL League One' },
-  { opponent: 'Detroit City FC', date: new Date('2025-05-31T17:00:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2025, matchType: 'USL League One' },
-  { opponent: 'Union Omaha', date: new Date('2025-06-15T18:00:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2025, matchType: 'USL League One' },
-  { opponent: 'AV Alta FC', date: new Date('2025-07-02T18:30:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2025, matchType: 'USL League One' },
-  { opponent: 'South Georgia Tormenta FC', date: new Date('2025-07-06T18:30:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2025, matchType: 'USL League One' },
-  { opponent: 'Greenville Triumph SC', date: new Date('2025-07-16T18:30:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2025, matchType: 'USL League One' },
-  { opponent: 'Pittsburgh Riverhounds SC', date: new Date('2025-07-25T18:30:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2025, matchType: 'USL League One' },
-  { opponent: 'Halifax Wanderers', date: new Date('2025-08-06T18:30:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2025, matchType: 'Friendly' },
-  { opponent: 'Richmond Kickers', date: new Date('2025-08-09T17:00:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2025, matchType: 'USL League One' },
-  { opponent: 'Spokane Velocity FC', date: new Date('2025-08-17T18:00:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2025, matchType: 'USL League One' },
-  { opponent: 'Charlotte Independence', date: new Date('2025-08-30T17:00:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2025, matchType: 'USL League One' },
-  { opponent: 'Chattanooga Red Wolves SC', date: new Date('2025-09-13T18:00:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2025, matchType: 'USL League One' },
-  { opponent: 'FC Naples', date: new Date('2025-09-21T17:00:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2025, matchType: 'USL League One' },
-  { opponent: 'Texoma FC', date: new Date('2025-09-27T17:00:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2025, matchType: 'USL League One' },
-  { opponent: 'Forward Madison FC', date: new Date('2025-10-04T17:00:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2025, matchType: 'USL League One' },
-  { opponent: 'Westchester SC', date: new Date('2025-10-18T17:00:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2025, matchType: 'USL League One' },
-  { opponent: 'Spokane Velocity', date: new Date('2025-10-21T18:00:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2025, matchType: 'USL League One (Rescheduled)' },
-  { opponent: 'AV Alta FC', date: new Date('2025-10-25T17:00:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2025, matchType: 'USL League One' },
-
-
-  // FAKE DATA DUPLICATE OF 2025 tagged 2026
-  // Friendlies & Cup (Lewiston High School)
-  { opponent: 'CD Faialense', date: new Date('2026-03-20T18:30:00-04:00'), venue: 'Lewiston High School', season: 2026, matchType: 'Friendly' },
-  { opponent: 'Hartford Athletic', date: new Date('2026-04-02T18:30:00-04:00'), venue: 'Lewiston High School', season: 2026, matchType: 'U.S. Open Cup' },
-  { opponent: 'Rhode Island FC', date: new Date('2026-04-15T19:00:00-04:00'), venue: 'Lewiston High School', season: 2026, matchType: 'Cup' },
-
-  // Home games at Fitzpatrick Stadium
-  { opponent: 'One Knoxville SC', date: new Date('2026-04-11T18:00:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One' },
-  { opponent: 'FC Naples', date: new Date('2026-05-17T17:30:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One' },
-  { opponent: 'Detroit City FC', date: new Date('2026-05-31T17:00:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One' },
-  { opponent: 'Union Omaha', date: new Date('2026-06-15T18:00:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One' },
-  { opponent: 'AV Alta FC', date: new Date('2026-07-02T18:30:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One' },
-  { opponent: 'South Georgia Tormenta FC', date: new Date('2026-07-06T18:30:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One' },
-  { opponent: 'Greenville Triumph SC', date: new Date('2026-07-16T18:30:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One' },
-  { opponent: 'Pittsburgh Riverhounds SC', date: new Date('2026-07-25T18:30:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One' },
-  { opponent: 'Halifax Wanderers', date: new Date('2026-08-06T18:30:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'Friendly' },
-  { opponent: 'Richmond Kickers', date: new Date('2026-08-09T17:00:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One' },
-  { opponent: 'Spokane Velocity FC', date: new Date('2026-08-17T18:00:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One' },
-  { opponent: 'Charlotte Independence', date: new Date('2026-08-30T17:00:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One' },
-  { opponent: 'Chattanooga Red Wolves SC', date: new Date('2026-09-13T18:00:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One' },
-  { opponent: 'FC Naples', date: new Date('2026-09-21T17:00:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One' },
-  { opponent: 'Texoma FC', date: new Date('2026-09-27T17:00:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One' },
-  { opponent: 'Forward Madison FC', date: new Date('2026-10-04T17:00:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One' },
-  { opponent: 'Westchester SC', date: new Date('2026-10-18T17:00:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One' },
-  { opponent: 'Spokane Velocity', date: new Date('2026-10-21T18:00:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One (Rescheduled)' },
-  { opponent: 'AV Alta FC', date: new Date('2026-10-25T17:00:00-04:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One' },
+  // April
+  { opponent: 'One Knoxville SC', date: new Date('2026-04-11T18:00:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', timeTBD: true },
+  { opponent: 'FC Naples', date: new Date('2026-04-19T18:00:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', timeTBD: true },
+  
+  // May
+  { opponent: 'New York Cosmos', date: new Date('2026-05-02T18:00:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', timeTBD: true },
+  { opponent: 'Rhode Island FC', date: new Date('2026-05-16T18:00:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL Prinx Tires Cup', timeTBD: true },
+  { opponent: 'Greenville Triumph SC', date: new Date('2026-05-23T18:00:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', timeTBD: true },
+  { opponent: 'Spokane Velocity FC', date: new Date('2026-05-30T18:00:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', timeTBD: true },
+  
+  // June
+  { opponent: 'Chattanooga Red Wolves SC', date: new Date('2026-06-13T18:00:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', timeTBD: true },
+  { opponent: 'Richmond Kickers', date: new Date('2026-06-24T18:00:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', timeTBD: true },
+  
+  // July
+  { opponent: 'New York Cosmos', date: new Date('2026-07-11T18:00:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL Prinx Tires Cup', timeTBD: true },
+  { opponent: 'Union Omaha', date: new Date('2026-07-22T18:00:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', timeTBD: true },
+  { opponent: 'Sarasota Paradise', date: new Date('2026-07-26T18:00:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', timeTBD: true },
+  
+  // August
+  { opponent: 'TBD', date: new Date('2026-08-05T18:00:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'Friendly', timeTBD: true },
+  { opponent: 'Corpus Christi FC', date: new Date('2026-08-08T18:00:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', timeTBD: true },
+  { opponent: 'Forward Madison FC', date: new Date('2026-08-16T18:00:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', timeTBD: true },
+  { opponent: 'Fort Wayne FC', date: new Date('2026-08-29T18:00:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', timeTBD: true },
+  
+  // September
+  { opponent: 'Westchester SC', date: new Date('2026-09-06T18:00:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', timeTBD: true },
+  { opponent: 'AV ALTA FC', date: new Date('2026-09-13T18:00:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', timeTBD: true },
+  { opponent: 'South Georgia Tormenta FC', date: new Date('2026-09-26T18:00:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', timeTBD: true },
+  
+  // October
+  { opponent: 'Athletic Club Boise', date: new Date('2026-10-10T18:00:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', timeTBD: true },
+  { opponent: 'Charlotte Independence', date: new Date('2026-10-24T18:00:00'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', timeTBD: true },
 ];
