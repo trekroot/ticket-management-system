@@ -60,9 +60,14 @@ const ticketRequestSchema = new mongoose.Schema({
   },
 
   // Request lifecycle status
+  // - open: active request seeking matches
+  // - matched: paired with another request
+  // - completed: transaction finished
+  // - cancelled: user cancelled the request
+  // - deactivated: system cancelled due to user account deactivation/deletion
   status: {
     type: String,
-    enum: ['open', 'matched', 'completed', 'cancelled'],
+    enum: ['open', 'matched', 'completed', 'cancelled', 'deactivated'],
     default: 'open'
   },
 

@@ -9,6 +9,7 @@ const userSchema = new mongoose.Schema({
   discordHandle: { type: String },
   authProvider: { type: String, enum: ['google', 'email', 'dirigounion'], default: 'email' },
   role: { type: String, enum: ['admin', 'user'], default: 'user' },
+  termsAccepted: { type: ISODate(), default: new Date() },
   // Soft delete - deactivated accounts
   deactivated: { type: Boolean, default: false },
   deactivatedAt: { type: Date },
@@ -17,8 +18,9 @@ const userSchema = new mongoose.Schema({
   collection: 'users',
   toJSON: {
     transform: (doc, ret) => {
-      delete ret.passwordHash;
       delete ret.__v;
+      // NOTE: If adding local auth later, add passwordHash field to schema
+      // and delete ret.passwordHash here to prevent exposure
       return ret;
     }
   }
