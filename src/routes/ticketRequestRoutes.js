@@ -9,7 +9,8 @@ import {
   updateRequest,
   deleteRequest,
   getRequestsByGame,
-  getRequestsByUser
+  getRequestsByUser,
+  getTicketSeatingFormat
 } from '../controllers/ticketRequestController.js';
 
 /**
@@ -32,6 +33,7 @@ const router = express.Router();
  * Main CRUD routes
  *
  * GET    /api/tickets          - Get all requests (with optional filters)
+ * GET    /api/tickets/seating  - Get all seating formats
  * GET    /api/tickets/:id      - Get single request by ID
  * POST   /api/tickets/buy      - Create a buy request
  * POST   /api/tickets/sell     - Create a sell request
@@ -39,6 +41,10 @@ const router = express.Router();
  * DELETE /api/tickets/:id      - Delete a request
  */
 // TODO: Add public preview endpoint for non-logged-in users (limited info)
+
+// Base route
+router.route('/seating')
+  .get(optionalAuth, getTicketSeatingFormat);
 
 // Base route
 router.route('/')

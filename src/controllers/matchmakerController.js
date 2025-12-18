@@ -1,11 +1,10 @@
 import { TicketRequest, BuyRequest, SellRequest } from "../models/TicketRequest.js";
-import Game from "../models/Game.js";
 
 /**
  * Extract scoring for module use and easier maintenance
  */
-const gameValue = 40;
-const seatValue = 30;
+const gameValue = 30;
+const seatValue = 20;
 const priceValue = 20;
 const qtyValue = 20;
 const adjacencyValue = 10;
@@ -35,7 +34,9 @@ export function calculatePairingScore(saleTicket, requestTicket) {
     score += gameValue;
     reasons.push('Game match (+40)');
     console.log(`  [Game] Exact match: +40`);
-  } else {
+  } 
+  /** IF desire to add game range matching
+  else {
     // Check date proximity if games are different
     const saleDate = saleTicket.gameId.date || null;
     const requestDate = requestTicket.gameId.date || null;
@@ -57,18 +58,19 @@ export function calculatePairingScore(saleTicket, requestTicket) {
       }
     }
   }
+     */
 
   // B. Section Match
-  if (saleTicket.section === requestTicket.section) {
+  if (saleTicket.sectionType === requestTicket.sectionType) {
     score += seatValue;
-    reasons.push(`Exact section match: ${saleTicket.section} (+30)`);
+    reasons.push(`Exact section match: ${saleTicket.sectionType} (+30)`);
     console.log(`  [Section] Exact match: +30`);
   } else if (requestTicket.anySection) {
     score += seatValue / 2;
-    reasons.push(`Buyer accepts any section (+15)`);
-    console.log(`  [Section] Any section accepted: +15`);
+    reasons.push(`Buyer accepts any section (+20)`);
+    console.log(`  [Section] Any section accepted: +20`);
   } else {
-    reasons.push(`Section mismatch: ${saleTicket.section} vs ${requestTicket.section} (+0)`);
+    reasons.push(`Section mismatch: ${saleTicket.sectionType} vs ${requestTicket.sectionType} (+0)`);
     console.log(`  [Section] Mismatch: +0`);
   }
 
@@ -85,26 +87,37 @@ export function calculatePairingScore(saleTicket, requestTicket) {
   // D. Price Match
   const isDonation = saleTicket.donatingFree;
   const wantsFree = requestTicket.requestingFree;
+  let priceStatus = 'unknown';
 
   if (isDonation && wantsFree) {
     score += priceValue;
+    priceStatus = 'donation_match';
     reasons.push('Both are donation/free match (+20)');
     console.log(`  [Price] Both donation: +20`);
   } else if (isDonation) {
     score -= 100;
+    priceStatus = 'donation_mismatch';
     reasons.push('Seller is donating for free -100, kill match');
     // TODO - find a way to reconcile if there are free tickets available, but no request for donated
     console.log(`  [Price] Seller donating: -100`);
   } else if (requestTicket.maxPrice !== undefined && saleTicket.minPrice !== undefined) {
     if (saleTicket.minPrice <= requestTicket.maxPrice) {
       score += 20;
-      reasons.push(`Price compatible: $${saleTicket.minPrice} <= $${requestTicket.maxPrice} max (+20)`);
+      priceStatus = 'compatible';
+      reasons.push(`Price compatible: asking $${saleTicket.minPrice} (+20)`);
       console.log(`  [Price] Compatible: +20`);
+    } else if ((saleTicket.minPrice - requestTicket.maxPrice) / requestTicket.maxPrice < 0.25) {
+      score += 10;
+      priceStatus = 'negotiation_likely';
+      reasons.push(`Price close: asking $${saleTicket.minPrice} (+10)`);
+      console.log(`  [Price] Approximate: +10`);
     } else {
-      reasons.push(`Price mismatch: $${saleTicket.minPrice} > $${requestTicket.maxPrice} max (+0)`);
+      priceStatus = 'negotiation_needed';
+      reasons.push(`Price gap: asking $${saleTicket.minPrice} (+0)`);
       console.log(`  [Price] Mismatch: +0`);
     }
   } else {
+    priceStatus = 'incomplete';
     reasons.push('Price information incomplete (+0)');
     console.log(`  [Price] Incomplete info: +0`);
   }
@@ -125,7 +138,7 @@ export function calculatePairingScore(saleTicket, requestTicket) {
 
   console.log(`  [Total] Score: ${score}, [Percent]: ${score}/${maxScore}`);
 
-  return { score, reasons };
+  return { score, reasons, priceStatus };
 }
 
 /**
@@ -152,7 +165,8 @@ async function getPairingsForTicketRequest(ticketId, includeAll = false) {
   const OppositeModel = isSellRequest ? BuyRequest : SellRequest;
 
   console.log(`[Matchmaker] Looking for ${isSellRequest ? 'BuyRequests' : 'SellRequests'}`);
-
+  
+  /** LATER OPTION TO ADD BACK IN DATE RANGE FILTER - see calculatePairingScore
   // Find game date range (7 days before and after)
   const sourceGameDate = sourceTicket.gameId.date;
   const dateRangeStart = new Date(sourceGameDate);
@@ -164,14 +178,15 @@ async function getPairingsForTicketRequest(ticketId, includeAll = false) {
   const nearbyGames = await Game.find({
     date: { $gte: dateRangeStart, $lte: dateRangeEnd }
   });
-  const nearbyGameIds = nearbyGames.map(g => g._id);
+  // const nearbyGameIds = nearbyGames.map(g => g._id);
 
   console.log(`[Matchmaker] Found ${nearbyGames.length} games within date range`);
+  */
 
-  // Find all active tickets of opposite type with same/nearby game
+  // Find all active tickets of opposite type with same game
   // Exclude tickets from the same user (can't match with yourself!)
   const potentialMatches = await OppositeModel.find({
-    gameId: { $in: nearbyGameIds },
+    gameId: sourceTicket.gameId,
     status: 'open',
     userId: { $ne: sourceTicket.userId }
   }).populate('gameId');
@@ -185,7 +200,7 @@ async function getPairingsForTicketRequest(ticketId, includeAll = false) {
     const saleTicket = isSellRequest ? sourceTicket : match;
     const requestTicket = isSellRequest ? match : sourceTicket;
 
-    const { score, reasons } = calculatePairingScore(saleTicket, requestTicket);
+    const { score, reasons, priceStatus } = calculatePairingScore(saleTicket, requestTicket);
 
     // Include based on threshold: all positive scores if includeAll, otherwise >= minMatchScore
     const threshold = includeAll ? 0 : minMatchScore;
@@ -199,10 +214,16 @@ async function getPairingsForTicketRequest(ticketId, includeAll = false) {
         matchObj.userId.lastName = matchObj.userId.lastName.charAt(0);
       }
 
+      if (matchObj.__t === 'BuyRequest') {
+        matchObj.maxPrice = null;
+      }
+
       pairings.push({
         ticket: matchObj,
         score,
-        reasons
+        reasons,
+        priceStatus,
+        maxScore
       });
     }
   }
@@ -236,7 +257,7 @@ export async function getTicketPairings(req, res) {
         _id: sourceTicket._id,
         type: sourceTicket.__t,
         gameId: sourceTicket.gameId,
-        section: sourceTicket.section,
+        sectionType: sourceTicket.sectionType,
         numTickets: sourceTicket.numTickets
       },
       pairingsCount: pairings.length,
@@ -270,7 +291,7 @@ export async function getBestTicketPairings(req, res) {
         _id: sourceTicket._id,
         type: sourceTicket.__t,
         gameId: sourceTicket.gameId,
-        section: sourceTicket.section,
+        sectionType: sourceTicket.sectionType,
         numTickets: sourceTicket.numTickets
       },
       pairingsCount: bestPairings.length,

@@ -2,6 +2,7 @@ import { TicketRequest, BuyRequest, SellRequest } from '../models/TicketRequest.
 // Import models so Mongoose registers them for populate()
 import Game from '../models/Game.js';
 import { addOwnerFlag, addOwnerFlagTrimLastName } from '../utils/ticketHelper.js';
+import { getSectionTypeLabel, SEATING_FORMATS, SECTION_GROUPS } from '../models/SeatingFormat.js';
 
 /**
  * CONTROLLER: ticketRequestController
@@ -13,6 +14,27 @@ import { addOwnerFlag, addOwnerFlagTrimLastName } from '../utils/ticketHelper.js
  *
  * This separation keeps routes thin and logic testable.
  */
+
+
+/**
+ * GET /api/tickets/seating
+ * Get all seating formats
+ */
+
+export const getTicketSeatingFormat = async (req, res) => {
+  try {
+    res.json({
+      success: true,
+      data: { format: SEATING_FORMATS, groups: SECTION_GROUPS }
+    });
+  } catch (error) {
+    res.status(500).json({
+      succes: false,
+      error: error.message
+    });
+  }
+}
+
 
 /**
  * GET /api/tickets
@@ -38,7 +60,7 @@ export const getAllRequests = async (req, res) => {
     if (status) filter.status = status;
 
     // Add to filter
-    // Find games within the date range
+    // Find upcoming games
     const nearbyGames = await Game.find({
       date: { $gte: new Date()}
     });
@@ -47,12 +69,13 @@ export const getAllRequests = async (req, res) => {
 
     const ticketRequests = await Model.find(filter)
       .populate('userId', 'username firstName lastName email')  // Get user details
-      .populate('gameId', 'opponent date venue')                // Get game details
+      .populate('gameId', 'opponent date venue tbdTime')                // Get game details
       .sort({ createdAt: -1 });                                 // Newest first
 
     const userId = req.user?._id;
 
     const flaggedRequests = ticketRequests.map(ticket => {
+      ticket.sectionType = getSectionTypeLabel(ticket.sectionType);
       return addOwnerFlagTrimLastName(ticket, userId);
     });
 
@@ -77,7 +100,7 @@ export const getRequestById = async (req, res) => {
   try {
     const ticketRequest = await TicketRequest.findById(req.params.id)
       .populate('userId', 'username firstName lastName email')
-      .populate('gameId', 'opponent date venue time');
+      .populate('gameId', 'opponent date venue tbdTime');
 
     if (!ticketRequest) {
       return res.status(404).json({
@@ -87,6 +110,7 @@ export const getRequestById = async (req, res) => {
     }
 
     const ticketData = addOwnerFlagTrimLastName(ticketRequest, req.user?._id);
+    ticketData.sectionType = getSectionTypeLabel(ticketData.sectionType);
 
     res.json({
       success: true,
@@ -125,7 +149,7 @@ export const createBuyRequest = async (req, res) => {
 
     // Populate references before returning
     await buyRequest.populate('userId', 'username firstName lastName');
-    await buyRequest.populate('gameId', 'opponent date venue');
+    await buyRequest.populate('gameId', 'opponent date venue tbdTime');
 
     res.status(201).json({
       success: true,
@@ -171,7 +195,7 @@ export const createSellRequest = async (req, res) => {
     });
 
     await sellRequest.populate('userId', 'username firstName lastName');
-    await sellRequest.populate('gameId', 'opponent date venue');
+    await sellRequest.populate('gameId', 'opponent date venue tbdTime');
 
     res.status(201).json({
       success: true,
@@ -210,7 +234,7 @@ export const updateRequest = async (req, res) => {
       { new: true, runValidators: true }
     )
       .populate('userId', 'username firstName lastName email')
-      .populate('gameId', 'opponent date venue');
+      .populate('gameId', 'opponent date venue tbdTime');
 
     if (!request) {
       return res.status(404).json({
@@ -287,7 +311,7 @@ export const getRequestsByGame = async (req, res) => {
 
     const requests = await Model.find({ gameId })
       .populate('userId', 'username firstName lastName')
-      .populate('gameId', 'opponent date venue')
+      .populate('gameId', 'opponent date venue tbdTime')
       .sort({ createdAt: -1 });
 
     res.json({
@@ -333,10 +357,11 @@ export const getRequestsByUser = async (req, res) => {
     if (status) filter.status = status;
 
     const ticketRequests = await Model.find(filter)
-      .populate('gameId', 'opponent date venue')
+      .populate('gameId', 'opponent date venue tbdTime')
       .sort({ createdAt: -1 });
 
     const flaggedRequests = ticketRequests.map(ticket => {
+      ticket.sectionType = getSectionTypeLabel(ticket.sectionType);
       const result = addOwnerFlag(ticket, userId);
       if (!req.user) {
         result.userId = null;
