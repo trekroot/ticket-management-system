@@ -49,7 +49,7 @@ const ticketRequestSchema = new mongoose.Schema({
       if (this.__t === 'BuyRequest') return true;
       // Sellers only need numTickets if section doesn't have seats
       if (this.__t === 'SellRequest') 
-        return [119, 120, 'standing_room'].includes(this.numTickets);
+        return [119, 120, 'standing_room'].includes(this.section);
       return false;
     }
   },
@@ -183,9 +183,9 @@ const sellRequestSchema = new mongoose.Schema({
 
   // Seat numbers for standard seating [1-20]
   // Only applies to standard (100-117) and supporters section 118
-  seats: [{
-    type: Array
-  }],
+  seats: {
+    type: [Number]
+  },
 });
 
 // Create discriminator models
