@@ -1,5 +1,5 @@
 import express from 'express';
-import { appConfig } from '../config/app';
+import { appConfig } from '../config/app.js';
 
 /**
  * ROUTES: healthStatusRoutes
