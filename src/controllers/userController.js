@@ -223,10 +223,11 @@ export const deactivateUser = async (req, res) => {
       });
     }
 
-    // Cancel all open ticket requests for this user (single DB call)
+    // Cancel all open and matched ticket requests for this user
+    // (completed tickets are historical records, keep them)
     const ticketResult = await TicketRequest.updateMany(
-      { userId: req.params.id, status: 'open' },
-      { status: 'cancelled' }
+      { userId: req.params.id, status: { $in: ['open', 'matched'] } },
+      { status: 'deactivated' }
     );
 
     res.json({
@@ -265,10 +266,10 @@ export const deleteUser = async (req, res) => {
       });
     }
 
-    // Cancel all ticket requests for this user (single DB call)
+    // Cancel all open and matched ticket requests for this user
     const ticketResult = await TicketRequest.updateMany(
-      { userId: req.params.id, status: 'open' },
-      { status: 'cancelled' }
+      { userId: req.params.id, status: { $in: ['open', 'matched'] } },
+      { status: 'deactivated' }
     );
     
     res.json({

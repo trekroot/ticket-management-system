@@ -70,10 +70,11 @@ router.route('/user')
   router.route('/user/:userId')
   .get(verifyFirebaseToken, isAdmin, getRequestsByUser);
   
-router.route('/game/:id')
+router.route('/game/:gameId')
   .get(verifyFirebaseToken, getRequestsByGame);
 
 // Parameter routes LAST
+// TODO: FIX THE USAGES OF THIS - MESSY
 router.route('/:id')
   .get(verifyFirebaseToken, getRequestById) // make a public-safe endpoint with reduced user info
   .put(verifyFirebaseToken, isTicketOwnerOrAdmin, updateRequest)

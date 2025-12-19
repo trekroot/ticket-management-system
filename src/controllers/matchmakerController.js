@@ -1,3 +1,4 @@
+import { getSectionTypeLabel } from '../models/SeatingFormat.js';
 import { TicketRequest, BuyRequest, SellRequest } from "../models/TicketRequest.js";
 
 /**
@@ -158,6 +159,12 @@ async function getPairingsForTicketRequest(ticketId, includeAll = false) {
     return { sourceTicket: null, pairings: [], error: 'Ticket Request not found or unavailable' };
   }
 
+  // Handle orphaned game reference (game was deleted but ticket still exists)
+  if (sourceTicket.gameId && typeof sourceTicket.gameId === 'object' && !sourceTicket.gameId._id) {
+    console.warn(`[Matchmaker] Ticket ${ticketId} references a deleted game`);
+    return { sourceTicket: null, pairings: [], error: 'Ticket references a game that no longer exists' };
+  }
+
   console.log(`[Matchmaker] Source ticket type: ${sourceTicket.__t}, status: ${sourceTicket.status}`);
 
   // Determine if this is a buy or sell request
@@ -193,9 +200,18 @@ async function getPairingsForTicketRequest(ticketId, includeAll = false) {
 
   console.log(`[Matchmaker] Found ${potentialMatches.length} potential matches`);
 
+  // Filter out matches with orphaned game references
+  const validMatches = potentialMatches.filter(match => {
+    if (match.gameId && typeof match.gameId === 'object' && !match.gameId._id) {
+      console.warn(`[Matchmaker] Skipping match ${match._id} - references deleted game`);
+      return false;
+    }
+    return true;
+  });
+
   const pairings = [];
 
-  for (const match of potentialMatches) {
+  for (const match of validMatches) {
     // Determine which is sale and which is request based on source type
     const saleTicket = isSellRequest ? sourceTicket : match;
     const requestTicket = isSellRequest ? match : sourceTicket;
@@ -217,6 +233,8 @@ async function getPairingsForTicketRequest(ticketId, includeAll = false) {
       if (matchObj.__t === 'BuyRequest') {
         matchObj.maxPrice = null;
       }
+
+      matchObj.sectionType = getSectionTypeLabel(matchObj.sectionType);
 
       pairings.push({
         ticket: matchObj,
