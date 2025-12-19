@@ -6,6 +6,8 @@ const feedbackSchema = new mongoose.Schema({
     email: { type: String, required: true },
     subject: { type: String, required: true },
     message: { type: String, required: true },
+    frontendVersion: { type: String, required: true },
+    backendVersion: { type: String, required: true },
     // UserId and Snapshot of user info at time of creation (preserved if user is deleted)
     
     userSnapshot: {
