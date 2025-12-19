@@ -21,3 +21,4 @@ Thumbs.db
 
 # Auth / Firebase
 firebase-service-account.json
+credentials/

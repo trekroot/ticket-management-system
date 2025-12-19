@@ -13,8 +13,8 @@ const app = express();
 app.use(cors({
   origin: [
     'http://ticket-management-system.s3-website-us-east-1.amazonaws.com',
-    'http://localhost:5173',  // Keep for local dev
-    'https://d2175tj5v07y9z.cloudfront.net' // Cloudfront
+    'https://d2175tj5v07y9z.cloudfront.net',
+    'http://localhost:5173'  // Keep for local dev
   ],
   credentials: true,  // CRITICAL - allows cookies/auth headers
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
