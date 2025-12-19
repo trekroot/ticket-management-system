@@ -27,13 +27,12 @@ const ticketRequestSchema = new mongoose.Schema({
     required: false
   },
   
-  // TODO: Should we have more granularity...especially for Sellers + seat numbers
-  // Stadium section
-  section: {
+  // Stadium section type - used for matching
+  sectionType: {
     type: String,
-    enum: ['Supporters Section', 'Non-Supporters Section', 'Specialty Seating'],
+    enum: ['supporters', 'standard', 'standing_room', 'deweys', 'highroller'],
     required: function() {
-      // Sellers always need a section
+      // Sellers always need a section type
       if (this.__t === 'SellRequest') return true;
       // Buyers only need section if not selecting "any"
       if (this.__t === 'BuyRequest') return !this.anySection;
@@ -130,6 +129,14 @@ const buyRequestSchema = new mongoose.Schema({
  *
  * Inherits ALL fields from TicketRequest, plus adds seller-specific fields.
  * When you do `new SellRequest({...})`, Mongoose automatically sets __t: 'SellRequest'
+ *
+ * Seat details vary by sectionType:
+ *   - standard (100-117): sectionNumber, row (A-Z), seats [1-20]
+ *   - supporters (118): sectionNumber, row (A-Z), seats [1-20]
+ *   - supporters (119-120): sectionNumber only (GA)
+ *   - standing_room: no seat details (GA)
+ *   - deweys (1-6): sectionNumber, ticketNumbers [1-50]
+ *   - highroller (FC-1 to FC-7): sectionNumber, ticketNumbers [1-20]
  */
 const sellRequestSchema = new mongoose.Schema({
   // Minimum price willing to accept per ticket
@@ -144,11 +151,31 @@ const sellRequestSchema = new mongoose.Schema({
     default: false
   },
 
-  // // Specific Seat and Section?
-  // seats: {
-  //   type: Boolean,
-  //   default: false
-  // },
+  // Section number/identifier
+  // - standard: 100-117
+  // - supporters: 118-120
+  // - deweys: 1-6
+  // - highroller: 'FC-1' through 'FC-7'
+  // - standing_room: not used
+  section: {
+    type: mongoose.Schema.Types.Mixed
+  },
+
+  // Row letter for standard seating (A-Z)
+  // Only applies to standard (100-117) and supporters section 118
+  row: {
+    type: String,
+    uppercase: true,
+    match: /^[A-Z]$/
+  },
+
+  // Seat numbers for standard seating [1-20]
+  // Only applies to standard (100-117) and supporters section 118
+  seats: [{
+    type: Number,
+    min: 1,
+    max: 20
+  }],
 });
 
 // Create discriminator models
@@ -163,35 +190,45 @@ const SellRequest = TicketRequest.discriminator('SellRequest', sellRequestSchema
  * const buy = await BuyRequest.create({
  *   userId: someUserId,
  *   gameId: someGameId,
- *   section: 'Supporters Section,
+ *   sectionType: 'supporters',
  *   numTickets: 2,
  *   maxPrice: 25,
  *   firstTimeAttending: true
  * });
  *
- * // Create a sell request
+ * // Create a sell request - standard seating
  * const sell = await SellRequest.create({
  *   userId: someUserId,
  *   gameId: someGameId,
- *   section: 'Non-supporters Section',
+ *   sectionType: 'standard',
+ *   sectionNumber: 105,
+ *   row: 'C',
+ *   seats: [12, 13],
  *   numTickets: 2,
- *   minPrice: 20,
- *   donatingFree: false
+ *   minPrice: 20
  * });
  *
- * // Query all requests for a game (both buy and sell)
- * const allRequests = await TicketRequest.find({ gameId: someGameId });
+ * // Create a sell request - highroller
+ * const sellHighroller = await SellRequest.create({
+ *   userId: someUserId,
+ *   gameId: someGameId,
+ *   sectionType: 'highroller',
+ *   sectionNumber: 'FC-3',
+ *   ticketNumbers: [5, 6],
+ *   numTickets: 2,
+ *   minPrice: 50
+ * });
  *
- * // Query only buy requests
- * const buyRequests = await BuyRequest.find({ gameId: someGameId });
- *
- * // Query only sell requests
- * const sellRequests = await SellRequest.find({ gameId: someGameId });
- *
- * // Populate user and game data
- * const detailed = await BuyRequest.findById(id)
- *   .populate('userId', 'username email')  // Only get username and email from User
- *   .populate('gameId', 'opponent date');  // Only get opponent and date from Game
+ * // Create a sell request - deweys
+ * const sellDeweys = await SellRequest.create({
+ *   userId: someUserId,
+ *   gameId: someGameId,
+ *   sectionType: 'deweys',
+ *   sectionNumber: 4,
+ *   ticketNumbers: [2, 3, 4],
+ *   numTickets: 3,
+ *   minPrice: 3
+ * });
  */
 
 export { TicketRequest, BuyRequest, SellRequest };
