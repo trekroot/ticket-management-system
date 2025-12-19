@@ -76,7 +76,7 @@ export function calculatePairingScore(saleTicket, requestTicket) {
   }
 
   // C. Quantity Match
-  const saleTicketQuantity = saleTicket.seats?.length > 0 ?saleTicket.seats?.length : saleTicket.numTickets;
+  const saleTicketQuantity = saleTicket.seats?.length > 0 ? saleTicket.seats?.length : saleTicket.numTickets;
   if (saleTicket.numTickets >= requestTicket.numTickets) {
     score += qtyValue;
     reasons.push(`Quantity satisfied: ${saleTicket.numTickets} available, ${requestTicket.numTickets} needed (+20)`);
