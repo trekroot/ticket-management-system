@@ -42,13 +42,14 @@ const router = express.Router();
  */
 // TODO: Add public preview endpoint for non-logged-in users (limited info)
 
-// Base route
-router.route('/seating')
-  .get(optionalAuth, getTicketSeatingFormat);
 
 // Base route
 router.route('/')
   .get(optionalAuth, getAllRequests);
+
+// Seating options
+router.route('/seating')
+  .get(verifyFirebaseToken, getTicketSeatingFormat);
 
 // Literal prefix routes FIRST
 router.route('/buy')
