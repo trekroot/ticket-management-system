@@ -1,17 +1,19 @@
 import Feedback from '../models/Feedback.js';
+import { appConfig } from '../config/app.js';
 
 /**
  * POST /api/feedback
  * Create a new feedback submission
  *
  * Body: {
- *   type, email, subject, message,
+ *   type, email, subject, message, frontendVersion, backendVersion
  * }
  * Note: userId comes from authenticated user (req.user), not request body
  */
 export const createFeedback = async (req, res) => {
     try {
         // Use authenticated user's ID and snapshot their info for audit trail
+        req.body.backendVersion = appConfig.backendVersion;
         const feedbackSubmission = await Feedback.create({
             ...req.body,
             userId: req.user._id,
