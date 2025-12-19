@@ -9,13 +9,13 @@
 
 | Category | Critical | High | Medium | Low |
 |----------|----------|------|--------|-----|
-| Security | 1 | 4 | 3 | 0 |
+| Security | 1 | 5 | 3 | 0 |
 | Data Integrity | 0 | 1 | 3 | 0 |
 | Error Handling | 0 | 1 | 3 | 1 |
 | Performance | 0 | 1 | 3 | 0 |
 | API Design | 0 | 0 | 3 | 1 |
 | Code Quality | 0 | 0 | 7 | 4 |
-| **TOTALS** | **1** | **7** | **22** | **6** |
+| **TOTALS** | **1** | **8** | **22** | **6** |
 
 ---
 
@@ -78,7 +78,20 @@ const { gameId } = req.params;  // ← Expects 'gameId' - BROKEN!
 ```
 - **Impact:** Endpoint returns undefined/empty results
 
-### 2.5 N+1 Query Pattern in Matchmaker
+### 2.5 Missing Input Sanitization on Free Text Fields
+- [ ] **HIGH** - Implement input sanitization for XSS/injection prevention
+- **Files:** `src/controllers/feedbackController.js`, `src/controllers/userController.js`, `src/controllers/ticketRequestController.js`
+- **Issue:** Free text fields (feedback comments, user names, ticket notes) are not sanitized before storage or display
+- **Risks:**
+  - Stored XSS attacks via malicious input in feedback or notes
+  - NoSQL injection if special characters reach MongoDB queries
+  - HTML injection in rendered output
+- **Recommendation:**
+  - **Backend (Required):** Use `xss`, `sanitize-html`, or `DOMPurify` (via jsdom) to sanitize all free-text input before storage. Backend validation cannot be bypassed.
+  - **Frontend (UX):** Add client-side sanitization for immediate feedback, but never rely on it for security.
+  - Apply to: feedback comments, firstName/lastName, ticket notes, any user-provided text
+
+### 2.6 N+1 Query Pattern in Matchmaker
 - [ ] **HIGH** - Optimize matchmaker queries
 - **File:** `src/controllers/matchmakerController.js:310-341`
 - **Issue:** `getAllUserTicketMatches` performs loop-based queries
@@ -252,9 +265,10 @@ const { gameId } = req.params;  // ← Expects 'gameId' - BROKEN!
 | File | Issues |
 |------|--------|
 | `src/middleware/auth.js` | Auth bypass, silent errors |
-| `src/controllers/userController.js` | Input validation, user deletion |
+| `src/controllers/userController.js` | Input validation, user deletion, sanitization |
+| `src/controllers/feedbackController.js` | Input sanitization needed |
 | `src/controllers/matchmakerController.js` | N+1 queries, console.logs, awaits |
-| `src/controllers/ticketRequestController.js` | Typo, unused param, error handling |
+| `src/controllers/ticketRequestController.js` | Typo, unused param, error handling, sanitization |
 | `src/routes/ticketRequestRoutes.js` | Route param bug, ordering |
 | `src/models/TicketRequest.js` | Indexes, validation, foreign keys |
 | `server.js` | CORS, security headers |
@@ -265,4 +279,4 @@ const { gameId } = req.params;  // ← Expects 'gameId' - BROKEN!
 
 **Started:** 2025-12-17
 **Last Updated:** 2025-12-18
-**Completed:** 8 / 36 items
+**Completed:** 8 / 37 items

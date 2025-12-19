@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 const gameSchema = new mongoose.Schema({
   opponent: { type: String, required: true },
