@@ -43,8 +43,15 @@ const ticketRequestSchema = new mongoose.Schema({
   // How many tickets
   numTickets: {
     type: Number,
-    required: true,
-    min: 1
+    min: 1,
+    required: function() {
+      // Buyers always need a numTickets
+      if (this.__t === 'BuyRequest') return true;
+      // Sellers only need numTickets if section doesn't have seats
+      if (this.__t === 'SellRequest') 
+        return [119, 120, 'standing_room'].includes(this.numTickets);
+      return false;
+    }
   },
 
   // Do the tickets need to be together (adjacent seats)?
@@ -177,9 +184,7 @@ const sellRequestSchema = new mongoose.Schema({
   // Seat numbers for standard seating [1-20]
   // Only applies to standard (100-117) and supporters section 118
   seats: [{
-    type: Number,
-    min: 1,
-    max: 20
+    type: Array
   }],
 });
 

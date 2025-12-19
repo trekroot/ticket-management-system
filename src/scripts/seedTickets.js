@@ -176,7 +176,7 @@ async function seedTickets() {
         gameId: games.length > 2 ? games[2]._id : games[0]._id,
         sectionType: 'highroller',
         sectionNumber: 'FC-3',
-        ticketNumbers: [8, 9],
+        seats: [8, 9],
         numTickets: 2,
         ticketsTogether: true,
         minPrice: 40,

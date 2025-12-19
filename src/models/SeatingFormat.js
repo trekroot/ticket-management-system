@@ -18,12 +18,12 @@ export const SEATING_FORMATS = {
     sections: Array.from({ length: 19 }, (_, i) => 100 + i), // 100-118
     generalAdmission: false,
     rows: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''),
-    seats: Array.from({ length: 20 }, (_, i) => i)
+    seats: Array.from({ length: 20 }, (_, i) => 1 + i)
   },
   deweys: {
     sections: [1, 2, 3, 4, 5, 6],
     generalAdmission: false,
-    seats: Array.from({ length: 50 }, (_, i) => i)
+    seats: Array.from({ length: 50 }, (_, i) => 1 + i)
   },
   highroller: {
     sections: ['FC-1', 'FC-2', 'FC-3', 'FC-4', 'FC-5', 'FC-6', 'FC-7'],
