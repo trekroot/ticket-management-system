@@ -28,6 +28,7 @@ const ticketRequestSchema = new mongoose.Schema({
   },
   
   // Stadium section type - used for matching
+  // TODO: TEMPORARY TO RETAIN COMPATIBILITY
   sectionType: {
     type: String,
     enum: ['supporters', 'standard', 'standing_room', 'deweys', 'highroller'],
@@ -127,6 +128,15 @@ const buyRequestSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  
+  // Stadium section type - used for matching
+  sectionTypeDesired: {
+    type: String,
+    enum: ['supporters', 'standard', 'standing_room', 'deweys', 'highroller'],
+    required: function() {
+      return !this.anySection;
+    }
+  },
 });
 
 /**
@@ -135,9 +145,9 @@ const buyRequestSchema = new mongoose.Schema({
  * Inherits ALL fields from TicketRequest, plus adds seller-specific fields.
  * When you do `new SellRequest({...})`, Mongoose automatically sets __t: 'SellRequest'
  *
- * Seat details vary by sectionType:
- *   - standard (100-117): sectionNumber, row (A-Z), seats [1-20]
- *   - supporters (118): sectionNumber, row (A-Z), seats [1-20]
+ * Seat details vary by sectionTypeOffered:
+ *   - standard (100-117): sectionNumber, row (A-T), seats [1-20]
+ *   - supporters (118): sectionNumber, row (A-T), seats [1-20]
  *   - supporters (119-120): sectionNumber only (GA)
  *   - standing_room: no seat details (GA)
  *   - deweys (1-6): sectionNumber, ticketNumbers [1-50]
@@ -156,6 +166,13 @@ const sellRequestSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  
+  // Stadium section type - used for matching
+  sectionTypeOffered: {
+    type: String,
+    enum: ['supporters', 'standard', 'standing_room', 'deweys', 'highroller'],
+    required: true
+  },
 
   // Section number/identifier
   // - standard: 100-117
@@ -167,7 +184,7 @@ const sellRequestSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.Mixed
   },
 
-  // Row letter for standard seating (A-Z)
+  // Row letter for standard seating (A-T)
   // Only applies to standard (100-117) and supporters section 118
   row: {
     type: String,
@@ -258,7 +275,7 @@ const TradeRequest = TicketRequest.discriminator('TradeRequest', tradeRequestSch
  * const buy = await BuyRequest.create({
  *   userId: someUserId,
  *   gameId: someGameId,
- *   sectionType: 'supporters',
+ *   sectionTypeDesired: 'supporters',
  *   numTickets: 2,
  *   maxPrice: 25,
  *   firstTimeAttending: true
@@ -268,7 +285,7 @@ const TradeRequest = TicketRequest.discriminator('TradeRequest', tradeRequestSch
  * const sell = await SellRequest.create({
  *   userId: someUserId,
  *   gameId: someGameId,
- *   sectionType: 'standard',
+ *   sectionTypeOffered: 'standard',
  *   sectionNumber: 105,
  *   row: 'C',
  *   seats: [12, 13],
@@ -280,7 +297,7 @@ const TradeRequest = TicketRequest.discriminator('TradeRequest', tradeRequestSch
  * const sellHighroller = await SellRequest.create({
  *   userId: someUserId,
  *   gameId: someGameId,
- *   sectionType: 'highroller',
+ *   sectionTypeOffered: 'highroller',
  *   sectionNumber: 'FC-3',
  *   ticketNumbers: [5, 6],
  *   numTickets: 2,
@@ -291,7 +308,7 @@ const TradeRequest = TicketRequest.discriminator('TradeRequest', tradeRequestSch
  * const sellDeweys = await SellRequest.create({
  *   userId: someUserId,
  *   gameId: someGameId,
- *   sectionType: 'deweys',
+ *   sectionTypeOffered: 'deweys',
  *   sectionNumber: 4,
  *   ticketNumbers: [2, 3, 4],
  *   numTickets: 3,

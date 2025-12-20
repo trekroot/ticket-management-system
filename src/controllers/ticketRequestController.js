@@ -76,7 +76,7 @@ export const getAllRequests = async (req, res) => {
     const userId = req.user?._id;
 
     const flaggedRequests = ticketRequests.map(ticket => {
-      ticket.sectionType = getSectionTypeLabel(ticket.sectionType);
+      ticket.sectionType = getSectionTypeLabel(ticket);
       return addOwnerFlagTrimLastName(ticket, userId);
     });
 
@@ -111,7 +111,7 @@ export const getRequestById = async (req, res) => {
     }
 
     const ticketData = addOwnerFlagTrimLastName(ticketRequest, req.user?._id);
-    ticketData.sectionType = getSectionTypeLabel(ticketData.sectionType);
+    ticketData.sectionType = getSectionTypeLabel(ticketData);
 
     res.json({
       success: true,
@@ -409,7 +409,7 @@ export const getRequestsByUser = async (req, res) => {
       .sort({ createdAt: -1 });
 
     const flaggedRequests = ticketRequests.map(ticket => {
-      ticket.sectionType = getSectionTypeLabel(ticket.sectionType);
+      ticket.sectionType = getSectionTypeLabel(ticket);
       const result = addOwnerFlag(ticket, userId);
       return result;
     });

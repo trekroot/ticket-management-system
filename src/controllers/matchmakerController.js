@@ -319,7 +319,7 @@ async function getPairingsForTicketRequest(ticketId, includeAll = false) {
         matchObj.maxPrice = null;
       }
 
-      matchObj.sectionType = getSectionTypeLabel(matchObj.sectionType);
+      matchObj.sectionTypeLabel = getSectionTypeLabel(matchObj);
 
       pairings.push({
         ticket: matchObj,
@@ -356,13 +356,7 @@ export async function getTicketPairings(req, res) {
 
     res.json({
       success: true,
-      sourceTicket: {
-        _id: sourceTicket._id,
-        type: sourceTicket.__t,
-        gameId: sourceTicket.gameId,
-        sectionType: sourceTicket.sectionType,
-        numTickets: sourceTicket.numTickets
-      },
+      sourceTicket: sourceTicket.toObject(),
       pairingsCount: pairings.length,
       pairings
     });
@@ -390,13 +384,7 @@ export async function getBestTicketPairings(req, res) {
 
     res.json({
       success: true,
-      sourceTicket: {
-        _id: sourceTicket._id,
-        type: sourceTicket.__t,
-        gameId: sourceTicket.gameId,
-        sectionType: sourceTicket.sectionType,
-        numTickets: sourceTicket.numTickets
-      },
+      sourceTicket: sourceTicket.toObject(),
       pairingsCount: bestPairings.length,
       pairings: bestPairings
     });
