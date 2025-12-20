@@ -6,6 +6,7 @@ import {
   getRequestById,
   createBuyRequest,
   createSellRequest,
+  createTradeRequest,
   updateRequest,
   deleteRequest,
   getRequestsByGame,
@@ -37,6 +38,7 @@ const router = express.Router();
  * GET    /api/tickets/:id      - Get single request by ID
  * POST   /api/tickets/buy      - Create a buy request
  * POST   /api/tickets/sell     - Create a sell request
+ * POST   /api/tickets/trade     - Create a trade request
  * PUT    /api/tickets/:id      - Update a request
  * DELETE /api/tickets/:id      - Delete a request
  */
@@ -57,6 +59,9 @@ router.route('/buy')
 
 router.route('/sell')
   .post(verifyFirebaseToken, createSellRequest);
+
+router.route('/trade')
+  .post(verifyFirebaseToken, createTradeRequest);
 
 /**
  * Convenience routes for filtering
@@ -79,6 +84,6 @@ router.route('/game/:gameId')
 router.route('/:id')
   .get(verifyFirebaseToken, getRequestById) // make a public-safe endpoint with reduced user info
   .put(verifyFirebaseToken, isTicketOwnerOrAdmin, updateRequest)
-  .delete(verifyFirebaseToken, isTicketOwnerOrAdmin, deleteRequest);
+  .delete(verifyFirebaseToken, isAdmin, deleteRequest);
 
 export default router;

@@ -26,7 +26,7 @@ export function calculatePairingScore(saleTicket, requestTicket) {
 
   console.log(`[Matchmaker] Calculating score: Sale ${saleTicket._id} vs Request ${requestTicket._id}`);
 
-  // A. Game Date Match
+  // A. Game Match
   const saleGameId = saleTicket.gameId._id || saleTicket.gameId;
   const requestGameId = requestTicket.gameId._id || requestTicket.gameId;
 
@@ -61,28 +61,19 @@ export function calculatePairingScore(saleTicket, requestTicket) {
   }
      */
 
-  // B. Section Match
-  if (saleTicket.sectionType === requestTicket.sectionType) {
-    score += seatValue;
-    reasons.push(`Exact section match: ${saleTicket.sectionType} (+30)`);
-    console.log(`  [Section] Exact match: +30`);
-  } else if (requestTicket.anySection) {
-    score += seatValue / 2;
-    reasons.push(`Buyer accepts any section (+20)`);
-    console.log(`  [Section] Any section accepted: +20`);
-  } else {
-    reasons.push(`Section mismatch: ${saleTicket.sectionType} vs ${requestTicket.sectionType} (+0)`);
-    console.log(`  [Section] Mismatch: +0`);
-  }
-
+  // B. SectionType Match
+  const { scoreAdd, reasonsAdd } = sectionTypeScore(saleTicket, requestTicket);
+  score += scoreAdd;
+  reasons.push(reasonsAdd);
+  
   // C. Quantity Match
-  const saleTicketQuantity = saleTicket.seats?.length > 0 ? saleTicket.seats?.length : saleTicket.numTickets;
-  if (saleTicket.numTickets >= requestTicket.numTickets) {
+  const saleTicketQuantity = getNumTicketsFromOffer(saleTicket);
+  if (saleTicketQuantity >= requestTicket.numTickets) {
     score += qtyValue;
-    reasons.push(`Quantity satisfied: ${saleTicket.numTickets} available, ${requestTicket.numTickets} needed (+20)`);
+    reasons.push(`Quantity satisfied: ${saleTicketQuantity} available, ${requestTicket.numTickets} needed (+20)`);
     console.log(`  [Quantity] Satisfied: +20`);
   } else {
-    reasons.push(`Insufficient quantity: ${saleTicket.numTickets} available, ${requestTicket.numTickets} needed (+0)`);
+    reasons.push(`Insufficient quantity: ${saleTicketQuantity} available, ${requestTicket.numTickets} needed (+0)`);
     console.log(`  [Quantity] Insufficient: +0`);
   }
 
@@ -141,6 +132,99 @@ export function calculatePairingScore(saleTicket, requestTicket) {
   console.log(`  [Total] Score: ${score}, [Percent]: ${score}/${maxScore}`);
 
   return { score, reasons, priceStatus };
+}
+
+/**
+ * Calculate a pairing score between a trades 
+ *
+ * @param {Object} tradeRequest - The Trade Request
+ * @param {Object} potentialTradeMatch - The Comparison Ticket
+ * @returns {Object} { score: Number, reasons: Array }
+ */
+export function calculateTradePairingScore(tradeRequest, potentialTradeMatch) {
+  let score = 0;
+  const reasons = [];
+
+  console.log(`[Matchmaker] Calculating score: Trade Request ${tradeRequest._id} vs Trade Match ${potentialTradeMatch._id}`);
+
+  // A. Game Match
+  const requestGameId = tradeRequest.gameId._id || tradeRequest.gameId;
+  const requestDesiredGameIds = tradeRequest.desiredGameIds;
+  const matchGameId = potentialTradeMatch.gameId._id || potentialTradeMatch.gameId;
+  const matchDesiredGameIds = potentialTradeMatch.desiredGameIds;
+  
+  // Full match if games overlap OR allows anyGame
+  if ( (matchDesiredGameIds.includes(requestGameId) || tradeRequest.anyGame)
+    && (requestDesiredGameIds.includes(matchGameId) || potentialTradeMatch.anyGame) ) {
+    score += gameValue;
+    reasons.push('Both trades meet Game criteria (+40)');
+    console.log(`  [Game] Exact match: +40`);
+  } else if ( (matchDesiredGameIds.includes(requestGameId) || tradeRequest.anyGame)
+    || (requestDesiredGameIds.includes(matchGameId) || potentialTradeMatch.anyGame) ) {
+    // Odd logic but works - one of the two combos aligns
+    score += 10;
+    reasons.push('One ticket combo meets Game criteria (+10)');
+    console.log(`  [Game] Weak partial match: +10`);
+  } else {
+    reasons.push('No ticket combo meets Game criteria (+10)');
+    console.log(`  [Game] Weak partial match: +10`);
+  }
+
+  // B. SectionType Match
+  const { scoreAdd, reasonsAdd } = sectionTypeScore(tradeRequest, potentialTradeMatch);
+  score += scoreAdd;
+  reasons.push(reasonsAdd);
+  
+  // C. Quantity Match
+  const tradeTicketQuantity = getNumTicketsFromOffer(tradeRequest);
+  const potentialTradeMatchQuantity = getNumTicketsFromOffer(potentialTradeMatch);
+  if (tradeTicketQuantity == potentialTradeMatchQuantity) {
+    score += qtyValue;
+    reasons.push(`Quantity satisfied: ${tradeTicketQuantity} available, ${potentialTradeMatchQuantity} needed (+20)`);
+    console.log(`  [Quantity] Satisfied: +20`);
+  } else {
+    reasons.push(`Insufficient quantity: ${tradeTicketQuantity} available, ${potentialTradeMatchQuantity} needed (+0)`);
+    console.log(`  [Quantity] Insufficient: +0`);
+  }
+
+  return { score, reasons };
+}
+
+/**
+ * Lil baby helper function for NumTickets from an offer
+ * @param {ticket} ticket
+ * @returns {Number} Number of Tickets
+ */
+function getNumTicketsFromOffer(ticket) {
+  return ticket.seats?.length > 0 ? ticket.seats?.length : ticket.numTickets;
+}
+
+/**
+ * Helper function for sectionType score of a ticket pairing
+ * @param {ticket} ticketA
+ * @param {ticket} ticketB
+ * @returns {Number} score
+ */
+function sectionTypeScore(ticketA, ticketB) {
+  if (ticketA.sectionType === ticketB.sectionType) {
+    console.log(`  [Section] Exact match: +30`);
+    return {
+      scoreAdd: seatValue,
+      reasonsAdd: `Exact section match: ${ticketA.sectionType} (+30)`
+    };
+  } else if (ticketB.anySection) {
+    console.log(`  [Section] Any section accepted: +20`);
+    return {
+      scoreAdd:  seatValue / 2,
+      reasonsAdd: `Buyer accepts any section (+20)`
+    };
+  } else {
+    console.log(`  [Section] Mismatch: +0`);
+    return {
+      scoreAdd: 0,
+      reasonsAdd: `Section mismatch: ${ticketA.sectionType} vs ${ticketB.sectionType} (+0)`
+    };
+  }
 }
 
 /**

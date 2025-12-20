@@ -32,11 +32,8 @@ const ticketRequestSchema = new mongoose.Schema({
     type: String,
     enum: ['supporters', 'standard', 'standing_room', 'deweys', 'highroller'],
     required: function() {
-      // Sellers always need a section type
-      if (this.__t === 'SellRequest') return true;
-      // Buyers only need section if not selecting "any"
-      if (this.__t === 'BuyRequest') return !this.anySection;
-      return true;
+      // Traders & Sellers always need a sectionType, Buyers only need sectionType if not selecting "any"
+      return this.__t !== 'BuyRequest' || !this.anySection;
     }
   },
 
@@ -45,12 +42,8 @@ const ticketRequestSchema = new mongoose.Schema({
     type: Number,
     min: 1,
     required: function() {
-      // Buyers always need a numTickets
-      if (this.__t === 'BuyRequest') return true;
-      // Sellers only need numTickets if section doesn't have seats
-      if (this.__t === 'SellRequest') 
-        return [119, 120, 'standing_room'].includes(this.section);
-      return false;
+      // Sellers only need numTickets if section doesn't have seats, else numTickets
+      return this.__t === 'BuyRequest' || [119, 120, 'standing_room'].includes(this.section);
     }
   },
 
@@ -151,6 +144,7 @@ const buyRequestSchema = new mongoose.Schema({
  *   - highroller (FC-1 to FC-7): sectionNumber, ticketNumbers [1-20]
  */
 const sellRequestSchema = new mongoose.Schema({
+
   // Minimum price willing to accept per ticket
   minPrice: {
     type: Number,
@@ -178,7 +172,7 @@ const sellRequestSchema = new mongoose.Schema({
   row: {
     type: String,
     uppercase: true,
-    match: /^[A-Z]$/
+    match: /^[A-T]$/
   },
 
   // Seat numbers for standard seating [1-20]
@@ -188,10 +182,74 @@ const sellRequestSchema = new mongoose.Schema({
   },
 });
 
+/**
+   * DISCRIMINATOR: TradeRequest
+   *
+   * Inherits ALL fields from TicketRequest except minPrice, plus adds trade-specific fields.
+   * Similar to SellRequest but without price - user wants to trade tickets for different games.
+   */
+const tradeRequestSchema = new mongoose.Schema({
+  // User wants any game
+  anyGame: {
+    type: Boolean,
+    default: false
+  },
+
+  // Games the user wants to trade for (required, at least one)
+  desiredGameIds: {
+    type: [mongoose.Schema.Types.ObjectId],
+    ref: 'Game',
+    required: function() {
+      return !this.anyGame
+    },
+    validate: {
+      validator: function(v) {
+        if (this.anyGame) return true;
+        return v && v.length > 0;
+      },
+      message: 'At least one desired game is required when not trading for any game'
+    }
+  },
+
+  // Flag for desiring any section
+  anySection: {
+    type: Boolean,
+    default: false
+  },
+  
+  // Desired Section Type
+  desiredSectionType: {
+    type: String,
+    enum: ['supporters', 'standard', 'standing_room', 'deweys', 'highroller'],
+    required: function() {
+      // Traders & Sellers always need a sectionType, Buyers only need sectionType if not selecting "any"
+      return !this.anySection;
+    }
+  },
+
+  // Section number/identifier (same as SellRequest)
+  section: {
+    type: mongoose.Schema.Types.Mixed
+  },
+
+  // Row letter for standard seating
+  row: {
+    type: String,
+    uppercase: true,
+    match: /^[A-T]$/
+  },
+
+  // Seat numbers for standard seating
+  seats: {
+    type: [Number]
+  },
+});
+
 // Create discriminator models
 // These are linked to the base TicketRequest model
 const BuyRequest = TicketRequest.discriminator('BuyRequest', buyRequestSchema);
 const SellRequest = TicketRequest.discriminator('SellRequest', sellRequestSchema);
+const TradeRequest = TicketRequest.discriminator('TradeRequest', tradeRequestSchema);
 
 /**
  * USAGE EXAMPLES:
@@ -241,4 +299,4 @@ const SellRequest = TicketRequest.discriminator('SellRequest', sellRequestSchema
  * });
  */
 
-export { TicketRequest, BuyRequest, SellRequest };
+export { TicketRequest, BuyRequest, SellRequest, TradeRequest };

@@ -1,4 +1,4 @@
-import { TicketRequest, BuyRequest, SellRequest } from '../models/TicketRequest.js';
+import { TicketRequest, BuyRequest, SellRequest, TradeRequest } from '../models/TicketRequest.js';
 // Import models so Mongoose registers them for populate()
 import Game from '../models/Game.js';
 import { addOwnerFlag, addOwnerFlagTrimLastName } from '../utils/ticketHelper.js';
@@ -29,7 +29,7 @@ export const getTicketSeatingFormat = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({
-      succes: false,
+      success: false,
       error: error.message
     });
   }
@@ -38,10 +38,10 @@ export const getTicketSeatingFormat = async (req, res) => {
 
 /**
  * GET /api/tickets
- * Get all ticket requests (both buy and sell)
+ * Get all ticket requests (both buy, sell, and trade)
  *
  * Query params:
- *   - type: 'buy' | 'sell' (optional, filter by type)
+ *   - type: 'buy' | 'sell' | 'trade' (optional, filter by type)
  *   - gameId: ObjectId (optional, filter by game)
  *   - status: 'open' | 'matched' | 'completed' | 'cancelled' (optional)
  */
@@ -53,6 +53,7 @@ export const getAllRequests = async (req, res) => {
     let Model = TicketRequest;  // Default: query all types
     if (type === 'buy') Model = BuyRequest;
     if (type === 'sell') Model = SellRequest;
+    if (type === 'trade') Model = TradeRequest;
 
     // Build filter object from query params
     const filter = {};
@@ -176,7 +177,7 @@ export const createBuyRequest = async (req, res) => {
  * Create a new sell request
  *
  * Body: {
- *   gameId, section, numTickets, ticketsTogether,
+ *   gameId, sectionType, section, row, seats, numTickets, ticketsTogether,
  *   notes, minPrice, donatingFree
  * }
  * Note: userId comes from authenticated user (req.user), not request body
@@ -217,10 +218,55 @@ export const createSellRequest = async (req, res) => {
 };
 
 /**
+ * POST /api/tickets/trade
+ * Create a new trade request
+ *
+ * Body: {
+ *   anyGame, [desiredGameIds], sectionType, section, row, seats, numTickets,
+ *   ticketsTogether, notes
+ * }
+ * Note: userId comes from authenticated user (req.user), not request body
+ */
+export const createTradeRequest = async (req, res) => {
+  try {
+    // Use authenticated user's ID and snapshot their info for audit trail
+    const tradeRequest = await TradeRequest.create({
+      ...req.body,
+      userId: req.user._id,
+      userSnapshot: {
+        username: req.user.username,
+        firstName: req.user.firstName,
+        lastName: req.user.lastName
+      }
+    });
+
+    await tradeRequest.populate('userId', 'username firstName lastName');
+    await tradeRequest.populate('gameId', 'opponent date venue tbdTime');
+
+    res.status(201).json({
+      success: true,
+      data: tradeRequest
+    });
+  } catch (error) {
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(e => e.message);
+      return res.status(400).json({
+        success: false,
+        error: messages
+      });
+    }
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+/**
  * PUT /api/tickets/:id
  * Update a ticket request
  *
- * Works for both buy and sell requests since they share the base model.
+ * Works for buy, sell, trade requests since they share the base model.
  * Mongoose will validate fields based on the document's discriminator type.
  */
 export const updateRequest = async (req, res) => {
@@ -308,6 +354,7 @@ export const getRequestsByGame = async (req, res) => {
     let Model = TicketRequest;
     if (type === 'buy') Model = BuyRequest;
     if (type === 'sell') Model = SellRequest;
+    if (type === 'trade') Model = TradeRequest;
 
     const requests = await Model.find({ gameId })
       .populate('userId', 'username firstName lastName')
@@ -338,7 +385,7 @@ export const getRequestsByUser = async (req, res) => {
     let userId = req.user._id;
 
     // If userId param provided, check admin permission
-    if (req.params.userId) {
+    if (req.params.userId && req.params.userId !== userId.toString()) {
       if (req.user.role !== 'admin') {
         return res.status(403).json({
           success: false,
@@ -352,6 +399,7 @@ export const getRequestsByUser = async (req, res) => {
     let Model = TicketRequest;
     if (type === 'buy') Model = BuyRequest;
     if (type === 'sell') Model = SellRequest;
+    if (type === 'trade') Model = TradeRequest;
 
     const filter = { userId };
     if (status) filter.status = status;
@@ -363,11 +411,6 @@ export const getRequestsByUser = async (req, res) => {
     const flaggedRequests = ticketRequests.map(ticket => {
       ticket.sectionType = getSectionTypeLabel(ticket.sectionType);
       const result = addOwnerFlag(ticket, userId);
-      if (!req.user) {
-        result.userId = null;
-        result.userSnapshot = { firstName: "••••••", lastName: "••••••", username: null };
-        result.notes = null;
-      }
       return result;
     });
 
