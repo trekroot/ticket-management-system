@@ -1,7 +1,7 @@
 /**
  * Static seating configuration for the stadium
  *
- * sectionType (for matching):
+ * sectionTypeDesired/Offered (for matching):
  *   - supporters: sections 118-120
  *   - standard: sections 100-117
  *   - standing_room: SRO
@@ -59,20 +59,21 @@ export const SECTION_GROUPS = {
 };
 
 /**
- * Convert sectionType key to human-readable label
- * @param {string} sectionType
+ * Convert sectionTypeDesired/Offered key to human-readable label
+ * @param {Object} ticket
  * @returns {string} human-readable label
  */
-export function getSectionTypeLabel(sectionType) {
+export function getSectionTypeLabel(ticket) {
+  const sectionType = ticket.sectionTypeDesired || ticket.sectionTypeOffered;
   return SECTION_GROUPS[sectionType]?.label || sectionType;
 }
 
 /**
- * Map section number/identifier to sectionType
+ * Map section number/identifier to sectionTypeDesired/Offered
  * @param {number|string} section - Section number or identifier
- * @returns {string|null} sectionType or null if not found
+ * @returns {string|null} section type key or null if not found
  */
-export function getSectionType(section) {
+export function getSectionTypeFromSection(section) {
   // Highroller: FC-1 through FC-7
   if (typeof section === 'string' && section.startsWith('FC-')) {
     return 'highroller';
@@ -105,10 +106,11 @@ export function getSectionType(section) {
 
 /**
  * Get seating format for a sectionType
- * @param {string} sectionType
+ * @param {Object} ticket
  * @returns {object|null} format config or null
  */
-export function getSeatingFormat(sectionType) {
+export function getSeatingFormatFromTicket(ticket) {
+  const sectionType = ticket.sectionTypeDesired || ticket.sectionTypeOffered;
   switch (sectionType) {
     case 'supporters':
       // 118 uses standard format, 119-120 use GA
@@ -138,12 +140,14 @@ export function isGeneralAdmission(section) {
 }
 
 /**
+ * TODO: IS THIS EVEN IN USE
  * Validate seat details for a given section
  * @param {object} params - { section, row, seat, ticketNumber }
  * @returns {{ valid: boolean, error?: string }}
+
  */
 export function validateSeatDetails({ section, row, seat, ticketNumber }) {
-  const sectionType = getSectionType(section);
+  const sectionType = getSectionTypeFromSection(section);
 
   if (!sectionType) {
     return { valid: false, error: `Invalid section: ${section}` };
@@ -186,7 +190,7 @@ export function validateSeatDetails({ section, row, seat, ticketNumber }) {
 
 /**
  * Get the seating format for a specific section number
- * This maps from actual section → seating format (not sectionType)
+ * This maps from actual section → seating format (not sectionTypeDesired/Offered)
  *
  * Key distinction:
  *   getSectionType(118) → 'supporters' (for matching)

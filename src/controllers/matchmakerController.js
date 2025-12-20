@@ -62,27 +62,27 @@ export function calculatePairingScore(saleTicket, requestTicket) {
      */
 
   // B. Section Match
-  if (saleTicket.sectionType === requestTicket.sectionType) {
+  if (saleTicket.sectionTypeOffered === requestTicket.sectionTypeDesired) {
     score += seatValue;
-    reasons.push(`Exact section match: ${saleTicket.sectionType} (+30)`);
+    reasons.push(`Exact section match: ${saleTicket.sectionTypeOffered} (+30)`);
     console.log(`  [Section] Exact match: +30`);
   } else if (requestTicket.anySection) {
     score += seatValue / 2;
     reasons.push(`Buyer accepts any section (+20)`);
     console.log(`  [Section] Any section accepted: +20`);
   } else {
-    reasons.push(`Section mismatch: ${saleTicket.sectionType} vs ${requestTicket.sectionType} (+0)`);
+    reasons.push(`Section mismatch: ${saleTicket.sectionTypeOffered} vs ${requestTicket.sectionTypeDesired} (+0)`);
     console.log(`  [Section] Mismatch: +0`);
   }
 
   // C. Quantity Match
   const saleTicketQuantity = saleTicket.seats?.length > 0 ? saleTicket.seats?.length : saleTicket.numTickets;
-  if (saleTicket.numTickets >= requestTicket.numTickets) {
+  if (saleTicketQuantity >= requestTicket.numTickets) {
     score += qtyValue;
-    reasons.push(`Quantity satisfied: ${saleTicket.numTickets} available, ${requestTicket.numTickets} needed (+20)`);
+    reasons.push(`Quantity satisfied: ${saleTicketQuantity} available, ${requestTicket.numTickets} needed (+20)`);
     console.log(`  [Quantity] Satisfied: +20`);
   } else {
-    reasons.push(`Insufficient quantity: ${saleTicket.numTickets} available, ${requestTicket.numTickets} needed (+0)`);
+    reasons.push(`Insufficient quantity: ${saleTicketQuantity} available, ${requestTicket.numTickets} needed (+0)`);
     console.log(`  [Quantity] Insufficient: +0`);
   }
 
@@ -235,7 +235,7 @@ async function getPairingsForTicketRequest(ticketId, includeAll = false) {
         matchObj.maxPrice = null;
       }
 
-      matchObj.sectionType = getSectionTypeLabel(matchObj.sectionType);
+      matchObj.sectionTypeLabel = getSectionTypeLabel(matchObj);
 
       pairings.push({
         ticket: matchObj,
@@ -272,13 +272,7 @@ export async function getTicketPairings(req, res) {
 
     res.json({
       success: true,
-      sourceTicket: {
-        _id: sourceTicket._id,
-        type: sourceTicket.__t,
-        gameId: sourceTicket.gameId,
-        sectionType: sourceTicket.sectionType,
-        numTickets: sourceTicket.numTickets
-      },
+      sourceTicket: sourceTicket.toObject(),
       pairingsCount: pairings.length,
       pairings
     });
@@ -306,13 +300,7 @@ export async function getBestTicketPairings(req, res) {
 
     res.json({
       success: true,
-      sourceTicket: {
-        _id: sourceTicket._id,
-        type: sourceTicket.__t,
-        gameId: sourceTicket.gameId,
-        sectionType: sourceTicket.sectionType,
-        numTickets: sourceTicket.numTickets
-      },
+      sourceTicket: sourceTicket.toObject(),
       pairingsCount: bestPairings.length,
       pairings: bestPairings
     });
