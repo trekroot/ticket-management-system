@@ -231,6 +231,7 @@ const sellRequestSchema = new mongoose.Schema({
     type: String,
     uppercase: true,
     match: /^[A-T]$/
+    match: /^[A-T]$/
   },
 
   // Seat numbers for standard seating [1-20]
