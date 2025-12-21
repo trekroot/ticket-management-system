@@ -2,7 +2,7 @@ import { TicketRequest, BuyRequest, SellRequest } from '../models/TicketRequest.
 // Import models so Mongoose registers them for populate()
 import Game from '../models/Game.js';
 import { addOwnerFlag, addOwnerFlagTrimLastName } from '../utils/ticketHelper.js';
-import { getSectionTypeLabel, SEATING_FORMATS, SECTION_GROUPS } from '../models/SeatingFormat.js';
+import { SEATING_FORMATS, SECTION_GROUPS } from '../models/SeatingFormat.js';
 
 /**
  * CONTROLLER: ticketRequestController
@@ -75,7 +75,6 @@ export const getAllRequests = async (req, res) => {
     const userId = req.user?._id;
 
     const flaggedRequests = ticketRequests.map(ticket => {
-      ticket.sectionType = getSectionTypeLabel(ticket.sectionType);
       return addOwnerFlagTrimLastName(ticket, userId);
     });
 
@@ -110,7 +109,6 @@ export const getRequestById = async (req, res) => {
     }
 
     const ticketData = addOwnerFlagTrimLastName(ticketRequest, req.user?._id);
-    ticketData.sectionType = getSectionTypeLabel(ticketData.sectionType);
 
     res.json({
       success: true,
@@ -361,7 +359,6 @@ export const getRequestsByUser = async (req, res) => {
       .sort({ createdAt: -1 });
 
     const flaggedRequests = ticketRequests.map(ticket => {
-      ticket.sectionType = getSectionTypeLabel(ticket.sectionType);
       const result = addOwnerFlag(ticket, userId);
       if (!req.user) {
         result.userId = null;
