@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { getSectionTypeLabel } from './SeatingFormat.js';
 
 /**
  * BASE SCHEMA: TicketRequest
@@ -25,20 +26,6 @@ const ticketRequestSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Game',
     required: false
-  },
-  
-  // Stadium section type - used for matching
-  // TODO: TEMPORARY TO RETAIN COMPATIBILITY
-  sectionType: {
-    type: String,
-    enum: ['supporters', 'standard', 'standing_room', 'deweys', 'highroller'],
-    required: function() {
-      // Sellers always need a section type
-      if (this.__t === 'SellRequest') return true;
-      // Buyers only need section if not selecting "any"
-      if (this.__t === 'BuyRequest') return !this.anySection;
-      return true;
-    }
   },
 
   // How many tickets
@@ -95,6 +82,29 @@ const ticketRequestSchema = new mongoose.Schema({
 // Index for common queries
 ticketRequestSchema.index({ gameId: 1, status: 1 });
 ticketRequestSchema.index({ userId: 1 });
+
+// Virtual for frontend compatibility - returns the relevant sectionType
+ticketRequestSchema.virtual('effectiveSectionType').get(function() {
+  if (this.__t === 'BuyRequest') return this.sectionTypeDesired;
+  if (this.__t === 'SellRequest') return this.sectionTypeOffered;
+  return null; // Trade uses explicit fields
+});
+
+// Include virtuals in JSON/Object output + auto-add sectionTypeLabel
+ticketRequestSchema.set('toJSON', {
+  virtuals: true,
+  transform: (doc, ret) => {
+    ret.sectionTypeLabel = getSectionTypeLabel(doc);
+    return ret;
+  }
+});
+ticketRequestSchema.set('toObject', {
+  virtuals: true,
+  transform: (doc, ret) => {
+    ret.sectionTypeLabel = getSectionTypeLabel(doc);
+    return ret;
+  }
+});
 
 // Create the base model
 const TicketRequest = mongoose.model('TicketRequest', ticketRequestSchema);
