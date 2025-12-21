@@ -1,4 +1,3 @@
-import { getSectionTypeLabel } from '../models/SeatingFormat.js';
 import { TicketRequest, BuyRequest, SellRequest } from "../models/TicketRequest.js";
 
 /**
@@ -60,6 +59,20 @@ export function calculatePairingScore(saleTicket, requestTicket) {
     }
   }
      */
+
+  // B. Section Match
+  if (saleTicket.sectionTypeOffered === requestTicket.sectionTypeDesired) {
+    score += seatValue;
+    reasons.push(`Exact section match: ${saleTicket.sectionTypeLabel} (+30)`);
+    console.log(`  [Section] Exact match: +30`);
+  } else if (requestTicket.anySection) {
+    score += seatValue / 2;
+    reasons.push(`Buyer accepts any section (+20)`);
+    console.log(`  [Section] Any section accepted: +20`);
+  } else {
+    reasons.push(`Section mismatch: ${saleTicket.sectionTypeLabel} vs ${requestTicket.sectionTypeLabel} (+0)`);
+    console.log(`  [Section] Mismatch: +0`);
+  }
 
   // B. SectionType Match
   const { scoreAdd, reasonsAdd } = sectionTypeScore(saleTicket, requestTicket);
@@ -282,11 +295,14 @@ async function getPairingsForTicketRequest(ticketId, includeAll = false) {
     status: 'open',
     userId: { $ne: sourceTicket.userId }
   }).populate('gameId');
+  
+  const sourceWithLabel = sourceTicket.toObject();
+  const matchesWithLabels = potentialMatches.map(m => m.toObject());
 
-  console.log(`[Matchmaker] Found ${potentialMatches.length} potential matches`);
+  console.log(`[Matchmaker] Found ${matchesWithLabels.length} potential match(es)`);
 
   // Filter out matches with orphaned game references
-  const validMatches = potentialMatches.filter(match => {
+  const validMatches = matchesWithLabels.filter(match => {
     if (match.gameId && typeof match.gameId === 'object' && !match.gameId._id) {
       console.warn(`[Matchmaker] Skipping match ${match._id} - references deleted game`);
       return false;
@@ -296,10 +312,10 @@ async function getPairingsForTicketRequest(ticketId, includeAll = false) {
 
   const pairings = [];
 
-  for (const match of validMatches) {
+  for (const matchObj of validMatches) {
     // Determine which is sale and which is request based on source type
-    const saleTicket = isSellRequest ? sourceTicket : match;
-    const requestTicket = isSellRequest ? match : sourceTicket;
+    const saleTicket = isSellRequest ? sourceWithLabel : matchObj;
+    const requestTicket = isSellRequest ? matchObj : sourceWithLabel;
 
     const { score, reasons, priceStatus } = calculatePairingScore(saleTicket, requestTicket);
 
@@ -307,7 +323,6 @@ async function getPairingsForTicketRequest(ticketId, includeAll = false) {
     const threshold = includeAll ? 0 : minMatchScore;
     if (score > threshold) {
       // Convert to object and trim lastName for privacy
-      const matchObj = match.toObject();
       if (matchObj.userSnapshot?.lastName) {
         matchObj.userSnapshot.lastName = matchObj.userSnapshot.lastName.charAt(0);
       }
@@ -319,7 +334,7 @@ async function getPairingsForTicketRequest(ticketId, includeAll = false) {
         matchObj.maxPrice = null;
       }
 
-      matchObj.sectionTypeLabel = getSectionTypeLabel(matchObj);
+      // matchObj.sectionTypeLabel = getSectionTypeLabel(matchObj);
 
       pairings.push({
         ticket: matchObj,

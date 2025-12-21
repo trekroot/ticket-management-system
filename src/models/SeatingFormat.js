@@ -64,7 +64,7 @@ export const SECTION_GROUPS = {
  * @returns {string} human-readable label
  */
 export function getSectionTypeLabel(ticket) {
-  const sectionType = ticket.sectionTypeDesired || ticket.sectionTypeOffered;
+  const sectionType = ticket.effectiveSectionType;
   return SECTION_GROUPS[sectionType]?.label || sectionType;
 }
 
@@ -80,7 +80,7 @@ export function getSectionTypeFromSection(section) {
   }
 
   // Standing room
-  if (section === 'standing_room' || section === 'sro') {
+  if (section === 'standing_room') {
     return 'standing_room';
   }
 
