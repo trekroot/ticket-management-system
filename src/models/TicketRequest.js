@@ -75,9 +75,19 @@ const ticketRequestSchema = new mongoose.Schema({
 
   // Snapshot of user info at time of creation (preserved if user is deleted)
   userSnapshot: {
+    discordHandle: String,
     username: String,
     firstName: String,
     lastName: String
+  },
+
+  // Snapshot of counterparty info at time of match completion
+  counterpartySnapshot: {
+    discordHandle: String,
+    username: String,
+    firstName: String,
+    lastName: String,
+    email: String
   },
 
 }, {

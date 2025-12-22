@@ -11,7 +11,10 @@ import {
   deleteRequest,
   getRequestsByGame,
   getRequestsByUser,
-  getTicketSeatingFormat
+  getTicketSeatingFormat,
+  getAllUserTicketPairings,
+  getTicketPairingsMatch,
+  getBestTicketPairings
 } from '../controllers/ticketRequestController.js';
 
 /**
@@ -41,6 +44,12 @@ const router = express.Router();
  * POST   /api/tickets/trade     - Create a trade request
  * PUT    /api/tickets/:id      - Update a request
  * DELETE /api/tickets/:id      - Delete a request
+ *
+ * Pairing routes (potential matches for a ticket)
+ *
+ * GET    /api/tickets/pairing            - Get all pairings for user's tickets
+ * GET    /api/tickets/pairing/:ticketId  - Get pairings for a specific ticket
+ * GET    /api/tickets/pairing/:ticketId/best - Get top 3 pairings
  */
 // TODO: Add public preview endpoint for non-logged-in users (limited info)
 
@@ -79,11 +88,17 @@ router.route('/user')
 router.route('/game/:gameId')
   .get(verifyFirebaseToken, getRequestsByGame);
 
+// Pairing-specific routes
+router.get('/pairing/', verifyFirebaseToken, getAllUserTicketPairings);
+
+router.get('/pairing/:ticketId', verifyFirebaseToken, isTicketOwnerOrAdmin(req => req.params.ticketId), getTicketPairingsMatch);
+
+router.get('/pairing/:ticketId/best', verifyFirebaseToken, isTicketOwnerOrAdmin(req => req.params.ticketId), getBestTicketPairings);
+
 // Parameter routes LAST
-// TODO: FIX THE USAGES OF THIS - MESSY
 router.route('/:id')
   .get(verifyFirebaseToken, getRequestById) // make a public-safe endpoint with reduced user info
-  .put(verifyFirebaseToken, isTicketOwnerOrAdmin, updateRequest)
-  .delete(verifyFirebaseToken, isAdmin, deleteRequest);
+  .put(verifyFirebaseToken, isTicketOwnerOrAdmin(req => req.params.id), updateRequest)
+  .delete(verifyFirebaseToken, isTicketOwnerOrAdmin(req => req.params.id), deleteRequest);
 
 export default router;
