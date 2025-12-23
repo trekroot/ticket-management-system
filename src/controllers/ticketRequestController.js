@@ -228,15 +228,15 @@ export const updateRequest = async (req, res) => {
     // first check if the request status is being updated for a ticket in an exchange
     const query = {
       $or: [
-        { initiatorTicketId: { $in: ticketIds } },
-        { matchedTicketId: { $in: ticketIds } }
+        { initiatorTicketId: req.params.id },
+        { matchedTicketId: req.params.id }
       ],
       status: {$in: ['pending', 'accepted']}
     };
 
     const match = await Match.find(query);
 
-    if (match) {
+    if (match && match.length > 0) {
       return res.status(400).json({
         success: false,
         error: 'Cannot update ticket in active exchange! Please contact counterparty or cancel exchange.'
