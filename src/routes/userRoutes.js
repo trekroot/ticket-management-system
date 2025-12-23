@@ -1,5 +1,5 @@
 import express from 'express';
-import { verifyFirebaseToken } from '../middleware/auth.js';
+import { verifyFirebaseToken, verifyFirebaseTokenOnly } from '../middleware/auth.js';
 import { isUserOwnerOrAdmin, isAdmin } from '../middleware/authorize.js';
 import {
     getUserById,
@@ -30,7 +30,7 @@ router.route('/firebase/:firebaseUid')
     .get(verifyFirebaseToken, getUserByFirebaseId);
 
 router.route('/verifyAccount/:firebaseUid')
-    .get(verifyFirebaseToken, verifyUserExists);
+    .get(verifyFirebaseTokenOnly, verifyUserExists);
 
 router.route('/')
     .get(verifyFirebaseToken, isAdmin, getAllUsers)
