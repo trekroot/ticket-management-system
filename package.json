@@ -1,6 +1,6 @@
 {
   "name": "ticket-management-system",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Ticket management system for Hearts of Pine",
   "main": "server.js",
   "type": "module",

@@ -336,31 +336,32 @@ export const getUserPublicProfile = async (req, res) => {
 export const verifyUserExists = async (req, res) => {
   try {
     const user = await User.findOne({firebaseUid: req.params.firebaseUid});
-  
+
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        data: false,
-        error: 'User does not exist with provided Firebase ID'
+      // Return 200 so frontend can handle registration flow without error
+      return res.json({
+        success: true,
+        exists: false
       });
     }
-  
+
     res.json({
       success: true,
-      data: true
+      exists: true,
+      user
     });
   } catch (error) {
     if (error.name === 'CastError') {
       return res.status(400).json({
         success: false,
-        data: false,
+        exists: false,
         error: 'Invalid user ID format'
       });
     }
 
     res.status(500).json({
       success: false,
-      data: false,
+      exists: false,
       error: error.message
     });
   }
