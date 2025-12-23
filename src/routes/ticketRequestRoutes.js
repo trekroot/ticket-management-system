@@ -13,7 +13,7 @@ import {
   getRequestsByUser,
   getTicketSeatingFormat,
   getAllUserTicketPairings,
-  getTicketPairingsMatch,
+  getTicketPairingsOrMatch,
   getBestTicketPairings
 } from '../controllers/ticketRequestController.js';
 
@@ -91,7 +91,7 @@ router.route('/game/:gameId')
 // Pairing-specific routes
 router.get('/pairing/', verifyFirebaseToken, getAllUserTicketPairings);
 
-router.get('/pairing/:ticketId', verifyFirebaseToken, isTicketOwnerOrAdmin(req => req.params.ticketId), getTicketPairingsMatch);
+router.get('/pairing/:ticketId', verifyFirebaseToken, isTicketOwnerOrAdmin(req => req.params.ticketId), getTicketPairingsOrMatch);
 
 router.get('/pairing/:ticketId/best', verifyFirebaseToken, isTicketOwnerOrAdmin(req => req.params.ticketId), getBestTicketPairings);
 

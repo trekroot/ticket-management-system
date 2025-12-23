@@ -8,12 +8,19 @@ export const addOwnerFlag = (ticket, userId) => {
   };
 };
 
-export const addOwnerFlagTrimLastName = (ticket, userId) => {
+export const hidePrivateData = (ticket, userId) => {
   const ticketObject = ticket.toObject();
   const isOwner = getIsOwnerFromTicketUserId(ticketObject, userId);
 
-  if (!isOwner && ticketObject.userSnapshot?.lastName) {
-    ticketObject.userSnapshot.lastName = ticketObject.userSnapshot.lastName.charAt(0);
+  if (!isOwner) {
+    // Trim lastName for privacy
+    if (ticketObject.userSnapshot?.lastName) {
+      ticketObject.userSnapshot.lastName = ticketObject.userSnapshot.lastName.charAt(0);
+    }
+    // Hide maxPrice from BuyRequests for non-owners
+    if (ticketObject.__t === 'BuyRequest') {
+      ticketObject.maxPrice = null;
+    }
   }
 
   return {
