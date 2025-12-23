@@ -27,15 +27,15 @@ const matchSchema = new mongoose.Schema({
   // Current match status
   status: {
     type: String,
-    enum: ['pending', 'accepted', 'completed', 'cancelled', 'expired'],
-    default: 'pending'
+    enum: ['initiated', 'accepted', 'completed', 'cancelled', 'expired'],
+    default: 'initiated'
   },
 
   // Audit trail - every status change is logged
   history: [{
     status: {
       type: String,
-      enum: ['pending', 'accepted', 'completed', 'cancelled', 'expired'],
+      enum: ['initiated', 'accepted', 'completed', 'cancelled', 'expired'],
       required: true
     },
     changedBy: {

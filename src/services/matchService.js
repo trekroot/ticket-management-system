@@ -12,9 +12,8 @@ import User from '../models/User.js';
 
 /**
  * Initiate a match between two tickets
- * - Creates Match with status 'pending'
- * - Sets initiator ticket to 'pending'
- * - Matched ticket stays 'open' until they accept
+ * - Creates Match with status 'initiated'
+ * - Sets BOTH tickets to 'pending'
  *
  * @param {string} initiatorTicketId - Ticket ID of the user initiating
  * @param {string} matchedTicketId - Ticket ID they want to match with
@@ -52,18 +51,19 @@ export async function initiateMatch(initiatorTicketId, matchedTicketId, userId) 
     const match = await Match.create({
       initiatorTicketId,
       matchedTicketId,
-      status: 'pending',
+      status: 'initiated',
       history: [{
-        status: 'pending',
+        status: 'initiated',
         changedBy: userId,
         notes: 'Match initiated'
       }]
     });
 
-    // Update initiator ticket status
-    await TicketRequest.findByIdAndUpdate(initiatorTicketId, {
-      status: 'pending'
-    });
+    // Update BOTH tickets to pending
+    await Promise.all([
+      TicketRequest.findByIdAndUpdate(initiatorTicketId, { status: 'pending' }),
+      TicketRequest.findByIdAndUpdate(matchedTicketId, { status: 'pending' })
+    ]);
 
     return { success: true, match };
   } catch (error) {
@@ -73,7 +73,7 @@ export async function initiateMatch(initiatorTicketId, matchedTicketId, userId) 
 }
 
 /**
- * Accept a pending match
+ * Accept an initiated match
  * - Match status → 'accepted'
  * - Both tickets → 'matched'
  *
@@ -89,7 +89,7 @@ export async function acceptMatch(matchId, userId) {
     if (!match) {
       return { success: false, error: 'Match not found' };
     }
-    if (match.status !== 'pending') {
+    if (match.status !== 'initiated') {
       return { success: false, error: `Match is ${match.status}, cannot accept` };
     }
 
@@ -272,7 +272,7 @@ export async function getMatchesForUser(userId, status = null) {
       ]
     };
 
-    // TODO: consider if a "pending, accepted" default filer is best.
+    // TODO: consider if a "initiated, accepted" default filter is best.
     if (status) {
       query.status = status;
     }
@@ -343,7 +343,7 @@ export async function initiateDirectMatch(targetTicketId, userId) {
         sectionTypeDesired: targetTicket.sectionTypeOffered,
         numTickets: targetTicket.numTickets || targetTicket.seats?.length || 1,
         anySection: false,
-        status: 'matched',
+        status: 'pending',
         isDirectMatch: true,
         userSnapshot: {
           discordHandle: user.discordHandle,
@@ -362,7 +362,7 @@ export async function initiateDirectMatch(targetTicketId, userId) {
         gameId: targetTicket.gameId._id,
         sectionTypeOffered: targetTicket.sectionTypeDesired || 'standard',
         numTickets: targetTicket.numTickets || 1,
-        status: 'matched',
+        status: 'pending',
         isDirectMatch: true,
         userSnapshot: {
           discordHandle: user.discordHandle,
@@ -378,16 +378,16 @@ export async function initiateDirectMatch(targetTicketId, userId) {
     const match = await Match.create({
       initiatorTicketId: createdTicket._id,
       matchedTicketId: targetTicketId,
-      status: 'pending',
+      status: 'initiated',
       history: [{
-        status: 'pending',
+        status: 'initiated',
         changedBy: userId,
         notes: 'Direct match initiated (ticket auto-created)'
       }]
     });
 
     // Update target ticket to pending (has incoming match request)
-    await TicketRequest.findByIdAndUpdate(targetTicketId, { status: 'matched' });
+    await TicketRequest.findByIdAndUpdate(targetTicketId, { status: 'pending' });
 
     return { success: true, match, createdTicket };
   } catch (error) {
