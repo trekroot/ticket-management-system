@@ -1,5 +1,7 @@
+import mongoose from 'mongoose';
 import Match from '../models/Match.js';
-import { TicketRequest } from '../models/TicketRequest.js';
+import { TicketRequest, BuyRequest, SellRequest } from '../models/TicketRequest.js';
+import User from '../models/User.js';
 
 /**
  * Match Service
@@ -295,6 +297,101 @@ export async function getMatchesForUser(userId, status = null) {
     return { success: true, matches };
   } catch (error) {
     console.error('[MatchService] getMatchesForUser error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Initiate a direct match - auto-creates a ticket for the initiator
+ * Used when user wants to match with a ticket but doesn't have their own
+ *
+ * @param {string} targetTicketId - The ticket they want to match with
+ * @param {string} userId - User ID initiating
+ * @returns {Object} { success, match, createdTicket, error }
+ */
+// TODO - add transation for mongoDB to ensure ALL OR NOTHING UPDATES
+export async function initiateDirectMatch(targetTicketId, userId) {
+  try {
+    // Get the target ticket
+    const targetTicket = await TicketRequest.findById(targetTicketId).populate('gameId');
+
+    if (!targetTicket) {
+      return { success: false, error: 'Target ticket not found' };
+    }
+    if (targetTicket.status !== 'open') {
+      return { success: false, error: 'Target ticket is no longer available' };
+    }
+    if (targetTicket.userId.toString() === userId.toString()) {
+      return { success: false, error: 'Cannot match with your own ticket' };
+    }
+
+    // Get user info for snapshot
+    const user = await User.findById(userId);
+    if (!user) {
+      return { success: false, error: 'User not found' };
+    }
+
+    // Determine what type of ticket to create (opposite of target)
+    const isSellRequest = targetTicket.__t === 'SellRequest';
+    let createdTicket;
+
+    if (isSellRequest) {
+      // Target is selling, create a BuyRequest for initiator
+      createdTicket = await BuyRequest.create({
+        userId,
+        gameId: targetTicket.gameId._id,
+        sectionTypeDesired: targetTicket.sectionTypeOffered,
+        numTickets: targetTicket.numTickets || targetTicket.seats?.length || 1,
+        anySection: false,
+        status: 'matched',
+        isDirectMatch: true,
+        userSnapshot: {
+          discordHandle: user.discordHandle,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName
+        },
+        notes: `Direct match with ticket ${targetTicketId}`
+      });
+    } else {
+      // Target is buying, create a SellRequest for initiator
+      // Note: This is less common - usually buyers don't have specific inventory
+      // You may want to restrict this or handle differently
+      createdTicket = await SellRequest.create({
+        userId,
+        gameId: targetTicket.gameId._id,
+        sectionTypeOffered: targetTicket.sectionTypeDesired || 'standard',
+        numTickets: targetTicket.numTickets || 1,
+        status: 'matched',
+        isDirectMatch: true,
+        userSnapshot: {
+          discordHandle: user.discordHandle,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName
+        },
+        notes: `Direct match with ticket ${targetTicketId}`
+      });
+    }
+
+    // Create the match
+    const match = await Match.create({
+      initiatorTicketId: createdTicket._id,
+      matchedTicketId: targetTicketId,
+      status: 'pending',
+      history: [{
+        status: 'pending',
+        changedBy: userId,
+        notes: 'Direct match initiated (ticket auto-created)'
+      }]
+    });
+
+    // Update target ticket to pending (has incoming match request)
+    await TicketRequest.findByIdAndUpdate(targetTicketId, { status: 'matched' });
+
+    return { success: true, match, createdTicket };
+  } catch (error) {
+    console.error('[MatchService] initiateDirectMatch error:', error);
     return { success: false, error: error.message };
   }
 }

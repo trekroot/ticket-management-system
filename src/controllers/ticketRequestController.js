@@ -1,7 +1,7 @@
 import { TicketRequest, BuyRequest, SellRequest } from '../models/TicketRequest.js';
 // Import models so Mongoose registers them for populate()
 import Game from '../models/Game.js';
-import { addOwnerFlag, addOwnerFlagTrimLastName } from '../utils/ticketHelper.js';
+import { addOwnerFlag, hidePrivateData } from '../utils/ticketHelper.js';
 import { SEATING_FORMATS, SECTION_GROUPS } from '../models/SeatingFormat.js';
 import Match from '../models/Match.js';
 
@@ -70,13 +70,13 @@ export const getAllRequests = async (req, res) => {
 
     const ticketRequests = await Model.find(filter)
       .populate('userId', 'discordHandle username firstName lastName email')  // Get user details
-      .populate('gameId', 'opponent date venue tbdTime')                // Get game details
+      .populate('gameId', 'opponent date venue tbdTime matchType')            // Get game details
       .sort({ createdAt: -1 });                                 // Newest first
 
     const userId = req.user?._id;
 
     const flaggedRequests = ticketRequests.map(ticket => {
-      return addOwnerFlagTrimLastName(ticket, userId);
+      return hidePrivateData(ticket, userId);
     });
 
     res.json({
@@ -100,7 +100,7 @@ export const getRequestById = async (req, res) => {
   try {
     const ticketRequest = await TicketRequest.findById(req.params.id)
       .populate('userId', 'discordHandle username firstName lastName email')
-      .populate('gameId', 'opponent date venue tbdTime');
+      .populate('gameId', 'opponent date venue tbdTime matchType');
 
     if (!ticketRequest) {
       return res.status(404).json({
@@ -109,7 +109,7 @@ export const getRequestById = async (req, res) => {
       });
     }
 
-    const ticketData = addOwnerFlagTrimLastName(ticketRequest, req.user?._id);
+    const ticketData = hidePrivateData(ticketRequest, req.user?._id);
 
     res.json({
       success: true,
@@ -149,7 +149,7 @@ export const createBuyRequest = async (req, res) => {
 
     // Populate references before returning
     await buyRequest.populate('userId', 'discordHandle username firstName lastName');
-    await buyRequest.populate('gameId', 'opponent date venue tbdTime');
+    await buyRequest.populate('gameId', 'opponent date venue tbdTime matchType');
 
     res.status(201).json({
       success: true,
@@ -195,7 +195,7 @@ export const createSellRequest = async (req, res) => {
     });
 
     await sellRequest.populate('userId', 'discordHandle username firstName lastName');
-    await sellRequest.populate('gameId', 'opponent date venue tbdTime');
+    await sellRequest.populate('gameId', 'opponent date venue tbdTime matchType');
 
     res.status(201).json({
       success: true,
@@ -252,7 +252,7 @@ export const updateRequest = async (req, res) => {
       { new: true, runValidators: true }
     )
       .populate('userId', 'discordHandle username firstName lastName email')
-      .populate('gameId', 'opponent date venue tbdTime');
+      .populate('gameId', 'opponent date venue tbdTime matchType');
 
     if (!request) {
       return res.status(404).json({
@@ -329,7 +329,7 @@ export const getRequestsByGame = async (req, res) => {
 
     const requests = await Model.find({ gameId })
       .populate('userId', 'discordHandle username firstName lastName')
-      .populate('gameId', 'opponent date venue tbdTime')
+      .populate('gameId', 'opponent date venue tbdTime matchType')
       .sort({ createdAt: -1 });
 
     res.json({
@@ -375,7 +375,7 @@ export const getRequestsByUser = async (req, res) => {
     if (status) filter.status = status;
 
     const ticketRequests = await Model.find(filter)
-      .populate('gameId', 'opponent date venue tbdTime')
+      .populate('gameId', 'opponent date venue tbdTime matchType')
       .sort({ createdAt: -1 });
 
     const flaggedRequests = ticketRequests.map(ticket => {
@@ -410,7 +410,7 @@ const qtyValue = 20;
 const adjacencyValue = 10;
 
 const maxScore = gameValue + seatValue + priceValue + qtyValue + adjacencyValue;
-const minMatchScore = maxScore * 0.4;
+const minMatchScore = maxScore * 0.6;
 
 /**
  * Calculate a pairing score between a sale (SellRequest) and a request (BuyRequest)
@@ -665,18 +665,18 @@ async function getOpenPairingsForTicketRequest(ticketId, includeAll = false) {
  * GET /api/tickets/pairing/:ticketId
  * GET /api/tickets/pairing/:ticketId?all=true  (includes all positive scores)
  */
-export async function getTicketPairingsMatch(req, res) {
+export async function getTicketPairingsOrMatch(req, res) {
   try {
     const includeAll = req.query.all === 'true';
     const ticketId = req.params.ticketId;
 
-    // Check if ticket is in an active match (pending or accepted)
+    // Check if ticket is in an non-cancelled match (pending, accepted, completed)
     const activeMatch = await Match.findOne({
       $or: [
         { initiatorTicketId: ticketId },
         { matchedTicketId: ticketId }
       ],
-      status: { $in: ['pending', 'accepted'] }
+      status: { $in: ['pending', 'accepted', 'completed'] }
     })
       .populate({
         path: 'initiatorTicketId',
