@@ -225,6 +225,24 @@ export const createSellRequest = async (req, res) => {
  */
 export const updateRequest = async (req, res) => {
   try {
+    // first check if the request status is being updated for a ticket in an exchange
+    const query = {
+      $or: [
+        { initiatorTicketId: { $in: ticketIds } },
+        { matchedTicketId: { $in: ticketIds } }
+      ],
+      status: {$in: ['pending', 'accepted']}
+    };
+
+    const match = await Match.find(query);
+
+    if (match) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot update ticket in active exchange! Please contact counterparty or cancel exchange.'
+      });
+    }
+
     // findByIdAndUpdate options:
     // - new: true returns the updated document (not the old one)
     // - runValidators: true ensures schema validation runs on update
