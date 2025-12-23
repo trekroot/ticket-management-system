@@ -3,6 +3,7 @@ import { verifyFirebaseToken } from '../middleware/auth.js';
 import { isTicketOwnerOrAdmin, isMatchParticipantOrAdmin } from '../middleware/authorize.js';
 import {
     initiateMatch,
+    initiateDirectMatch,
     acceptMatch,
     cancelMatch,
     completeMatch,
@@ -16,6 +17,9 @@ router.post('/:sourceTicketId/match/:targetTicketId', verifyFirebaseToken, isTic
 
 // GET /api/matchmaker/matches - get all matches (Match records) for user
 router.get('/matches', verifyFirebaseToken, getUserMatches);
+
+// POST /api/matchmaker/direct/:targetTicketId - initiate match without own ticket (auto-creates one)
+router.post('/direct/:targetTicketId', verifyFirebaseToken, initiateDirectMatch);
 
 // Match lifecycle routes (literal paths before :matchId param)
 // POST /api/matchmaker/:matchId/accept - accept a pending match

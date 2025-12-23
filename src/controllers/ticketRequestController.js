@@ -1,7 +1,7 @@
 import { TicketRequest, BuyRequest, SellRequest } from '../models/TicketRequest.js';
 // Import models so Mongoose registers them for populate()
 import Game from '../models/Game.js';
-import { addOwnerFlag, addOwnerFlagTrimLastName } from '../utils/ticketHelper.js';
+import { addOwnerFlag, hidePrivateData } from '../utils/ticketHelper.js';
 import { SEATING_FORMATS, SECTION_GROUPS } from '../models/SeatingFormat.js';
 import Match from '../models/Match.js';
 
@@ -76,7 +76,7 @@ export const getAllRequests = async (req, res) => {
     const userId = req.user?._id;
 
     const flaggedRequests = ticketRequests.map(ticket => {
-      return addOwnerFlagTrimLastName(ticket, userId);
+      return hidePrivateData(ticket, userId);
     });
 
     res.json({
@@ -109,7 +109,7 @@ export const getRequestById = async (req, res) => {
       });
     }
 
-    const ticketData = addOwnerFlagTrimLastName(ticketRequest, req.user?._id);
+    const ticketData = hidePrivateData(ticketRequest, req.user?._id);
 
     res.json({
       success: true,
@@ -410,7 +410,7 @@ const qtyValue = 20;
 const adjacencyValue = 10;
 
 const maxScore = gameValue + seatValue + priceValue + qtyValue + adjacencyValue;
-const minMatchScore = maxScore * 0.4;
+const minMatchScore = maxScore * 0.6;
 
 /**
  * Calculate a pairing score between a sale (SellRequest) and a request (BuyRequest)
@@ -665,18 +665,18 @@ async function getOpenPairingsForTicketRequest(ticketId, includeAll = false) {
  * GET /api/tickets/pairing/:ticketId
  * GET /api/tickets/pairing/:ticketId?all=true  (includes all positive scores)
  */
-export async function getTicketPairingsMatch(req, res) {
+export async function getTicketPairingsOrMatch(req, res) {
   try {
     const includeAll = req.query.all === 'true';
     const ticketId = req.params.ticketId;
 
-    // Check if ticket is in an active match (pending or accepted)
+    // Check if ticket is in an non-cancelled match (pending, accepted, completed)
     const activeMatch = await Match.findOne({
       $or: [
         { initiatorTicketId: ticketId },
         { matchedTicketId: ticketId }
       ],
-      status: { $in: ['pending', 'accepted'] }
+      status: { $in: ['pending', 'accepted', 'completed'] }
     })
       .populate({
         path: 'initiatorTicketId',

@@ -131,3 +131,29 @@ export async function getUserMatches(req, res) {
     res.status(500).json({ success: false, error: 'Failed to get matches', details: error.message });
   }
 }
+
+/**
+ * Initiate a direct match (without having your own ticket)
+ * POST /api/matchmaker/direct/:targetTicketId
+ */
+export async function initiateDirectMatch(req, res) {
+  try {
+    const { targetTicketId } = req.params;
+    const userId = req.user._id;
+
+    const result = await matchService.initiateDirectMatch(targetTicketId, userId);
+
+    if (!result.success) {
+      return res.status(400).json({ success: false, error: result.error });
+    }
+
+    res.json({
+      success: true,
+      match: result.match,
+      createdTicket: result.createdTicket
+    });
+  } catch (error) {
+    console.error('[Matchmaker] Error initiating direct match:', error);
+    res.status(500).json({ success: false, error: 'Failed to initiate direct match', details: error.message });
+  }
+}

@@ -83,6 +83,13 @@ const ticketRequestSchema = new mongoose.Schema({
     email: String
   },
 
+  // True if this ticket was auto-created when user initiated a match
+  // without having their own ticket first (direct match)
+  isDirectMatch: {
+    type: Boolean,
+    default: false
+  },
+
 }, {
   timestamps: true,           // Adds createdAt and updatedAt automatically
   collection: 'ticketrequests',
