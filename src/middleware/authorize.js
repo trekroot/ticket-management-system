@@ -1,4 +1,5 @@
 import { TicketRequest } from '../models/TicketRequest.js';
+import Match from '../models/Match.js';
 
 /**
  * Authorization Middleware
@@ -18,38 +19,97 @@ export function isAdmin(req, res, next) {
 }
 
 /**
- * Allow if user is admin OR owns the ticket
- * Use for: PUT /api/tickets/:id, DELETE /api/tickets/:id
+ * Factory: Allow if user is admin OR owns the ticket
+ * @param {Function} getTicketId - Function to extract ticketId from req
+ * @returns {Function} Express middleware
+ *
+ * Usage:
+ *   router.put('/:id', isTicketOwnerOrAdmin(req => req.params.id), updateTicket);
+ *   router.post('/match', isTicketOwnerOrAdmin(req => req.body.sourceTicketId), initiateMatch);
  */
-export async function isTicketOwnerOrAdmin(req, res, next) {
-  // Admins can do anything
-  if (req.user.role === 'admin') {
-    return next();
-  }
-
-  // For regular users, check ownership
-  // Support both :id and :ticketId param names
-  // TODO: FIX THE USAGES OF THIS - MESSY
-  const ticketId = req.params.id || req.params.ticketId;
-  try {
-    const ticket = await TicketRequest.findById(ticketId);
-
-    if (!ticket) {
-      return res.status(404).json({ error: 'Ticket not found' });
+export function isTicketOwnerOrAdmin(getTicketId) {
+  return async (req, res, next) => {
+    // Admins can do anything
+    if (req.user.role === 'admin') {
+      return next();
     }
 
-    // Compare MongoDB ObjectIds (need toString() for comparison)
-    if (ticket.userId.toString() !== req.user._id.toString()) {
-      return res
-        .status(403)
-        .json({ error: 'Not authorized to modify this ticket' });
+    // For regular users, check ownership
+    const ticketId = getTicketId(req);
+
+    if (!ticketId) {
+      return res.status(400).json({ error: 'Ticket ID required' });
     }
 
-    next();
-  } catch (error) {
-    console.error('Authorization check failed:', error.message);
-    return res.status(500).json({ error: 'Authorization check failed' });
-  }
+    try {
+      const ticket = await TicketRequest.findById(ticketId);
+
+      if (!ticket) {
+        return res.status(404).json({ error: 'Ticket not found' });
+      }
+
+      // Compare MongoDB ObjectIds (need toString() for comparison)
+      if (ticket.userId.toString() !== req.user._id.toString()) {
+        return res
+          .status(403)
+          .json({ error: 'Not authorized to modify this ticket' });
+      }
+
+      next();
+    } catch (error) {
+      console.error('Authorization check failed:', error.message);
+      return res.status(500).json({ error: 'Authorization check failed' });
+    }
+  };
+}
+
+/**
+ * Factory: Allow if user is admin OR participant in the match
+ * (owns either initiatorTicketId or matchedTicketId)
+ *
+ * @param {Function} getMatchId - Function to extract matchId from req
+ * @returns {Function} Express middleware
+ *
+ * Usage:
+ *   router.post('/:matchId/accept', isMatchParticipantOrAdmin(req => req.params.matchId), acceptMatch);
+ */
+export function isMatchParticipantOrAdmin(getMatchId) {
+  return async (req, res, next) => {
+    if (req.user.role === 'admin') {
+      return next();
+    }
+
+    const matchId = getMatchId(req);
+
+    if (!matchId) {
+      return res.status(400).json({ error: 'Match ID required' });
+    }
+
+    try {
+      const match = await Match.findById(matchId)
+        .populate('initiatorTicketId', 'userId')
+        .populate('matchedTicketId', 'userId');
+
+      if (!match) {
+        return res.status(404).json({ error: 'Match not found' });
+      }
+
+      const userId = req.user._id.toString();
+      const isInitiator = match.initiatorTicketId?.userId?.toString() === userId;
+      const isMatched = match.matchedTicketId?.userId?.toString() === userId;
+
+      if (!isInitiator && !isMatched) {
+        return res.status(403).json({ error: 'Not authorized to modify this match' });
+      }
+
+      // Attach match to request for use in controller (avoid re-fetching)
+      req.match = match;
+      next();
+    } catch (error) {
+      console.error('Match authorization check failed:', error.message);
+      return res.status(500).json({ error: 'Authorization check failed' });
+    }
+  };
 }
 
 /**
