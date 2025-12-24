@@ -676,7 +676,7 @@ export async function getTicketPairingsOrMatch(req, res) {
         { initiatorTicketId: ticketId },
         { matchedTicketId: ticketId }
       ],
-      status: { $in: ['pending', 'accepted', 'completed'] }
+      status: { $in: ['initiated', 'accepted', 'completed'] }
     })
       .populate({
         path: 'initiatorTicketId',
