@@ -302,6 +302,43 @@ export async function getMatchesForUser(userId, status = null) {
 }
 
 /**
+ * Get all matches (admin only)
+ *
+ * @param {string} status - Optional status filter
+ * @returns {Object} { success, matches, error }
+ */
+export async function getAllMatches(status = null) {
+  try {
+    const query = {};
+    if (status) {
+      query.status = status;
+    }
+
+    const matches = await Match.find(query)
+      .populate({
+        path: 'initiatorTicketId',
+        populate: [
+          { path: 'userId', select: 'username discordHandle email firstName lastName' },
+          { path: 'gameId', select: 'opponent date venue' }
+        ]
+      })
+      .populate({
+        path: 'matchedTicketId',
+        populate: [
+          { path: 'userId', select: 'username discordHandle email firstName lastName' },
+          { path: 'gameId', select: 'opponent date venue' }
+        ]
+      })
+      .sort({ updatedAt: -1 });
+
+    return { success: true, matches };
+  } catch (error) {
+    console.error('[MatchService] getAllMatches error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Initiate a direct match - auto-creates a ticket for the initiator
  * Used when user wants to match with a ticket but doesn't have their own
  *

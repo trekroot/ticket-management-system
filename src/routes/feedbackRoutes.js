@@ -8,10 +8,12 @@ const router = express.Router();
 /**
  * Main CRUD routes
  *
- * POST /api/feeback     - Submit a feedback request
- */
+ * POST /api/feedback    - Submit feedback
+ * GET  /api/feedback    - Get all feedback (admin only)
+*/
 
 router.route('/')
+  .get(verifyFirebaseToken, isAdmin, getAllFeedback)
   .post(verifyFirebaseToken, createFeedback);
 
 export default router;

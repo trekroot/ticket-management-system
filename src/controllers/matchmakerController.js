@@ -133,6 +133,32 @@ export async function getUserMatches(req, res) {
 }
 
 /**
+ * Get all matches (admin only)
+ * GET /api/matchmaker/admin/matches
+ * GET /api/matchmaker/admin/matches?status=pending
+ */
+export async function getAllMatches(req, res) {
+  try {
+    const { status } = req.query;
+
+    const result = await matchService.getAllMatches(status);
+
+    if (!result.success) {
+      return res.status(400).json({ success: false, error: result.error });
+    }
+
+    res.json({
+      success: true,
+      count: result.matches.length,
+      matches: result.matches
+    });
+  } catch (error) {
+    console.error('[Matchmaker] Error getting all matches:', error);
+    res.status(500).json({ success: false, error: 'Failed to get matches', details: error.message });
+  }
+}
+
+/**
  * Initiate a direct match (without having your own ticket)
  * POST /api/matchmaker/direct/:targetTicketId
  */
