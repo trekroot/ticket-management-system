@@ -52,6 +52,15 @@ ticket-management-system/
 └── .env.example
 ```
 
+## Tikcet/Exchange Match Workflow:
+  State mapping:
+  | Action      | Ticket A  | Ticket B  | Match     |
+  |-------------|-----------|-----------|-----------|
+  | Start       | open      | open      | —         |
+  | A initiates | pending   | pending   | initiated |
+  | B accepts   | matched   | matched   | accepted  |
+  | Complete    | completed | completed | completed |
+
 ## License
 
 ISC
