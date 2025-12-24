@@ -1,13 +1,14 @@
 import express from 'express';
 import { verifyFirebaseToken } from '../middleware/auth.js';
-import { isTicketOwnerOrAdmin, isMatchParticipantOrAdmin } from '../middleware/authorize.js';
+import { isTicketOwnerOrAdmin, isMatchParticipantOrAdmin, isAdmin } from '../middleware/authorize.js';
 import {
     initiateMatch,
     initiateDirectMatch,
     acceptMatch,
     cancelMatch,
     completeMatch,
-    getUserMatches
+    getUserMatches,
+    getAllMatches
 } from '../controllers/matchmakerController.js';
 
 const router = express.Router();
@@ -17,6 +18,9 @@ router.post('/:sourceTicketId/match/:targetTicketId', verifyFirebaseToken, isTic
 
 // GET /api/matchmaker/matches - get all matches (Match records) for user
 router.get('/matches', verifyFirebaseToken, getUserMatches);
+
+// GET /api/matchmaker/admin/matches - get all matches (admin only)
+router.get('/admin/matches', verifyFirebaseToken, isAdmin, getAllMatches);
 
 // POST /api/matchmaker/direct/:targetTicketId - initiate match without own ticket (auto-creates one)
 router.post('/direct/:targetTicketId', verifyFirebaseToken, initiateDirectMatch);

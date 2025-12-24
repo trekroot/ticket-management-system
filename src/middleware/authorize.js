@@ -113,21 +113,30 @@ export function isMatchParticipantOrAdmin(getMatchId) {
 }
 
 /**
- * Allow if user is admin OR accessing their own user record
- * Use for: GET/PUT/DELETE /api/users/:id
+ * Factory: Allow if user is admin OR accessing their own user record
+ * @param {Function} getUserId - Function to extract userId from req (default: req.params.id)
+ * @returns {Function} Express middleware
+ *
+ * Usage:
+ *   router.get('/:id', isUserOwnerOrAdmin(req => req.params.id), getUserById);
+ *   router.put('/profile', isUserOwnerOrAdmin(req => req.body.userId), updateProfile);
  */
-export function isUserOwnerOrAdmin(req, res, next) {
-  // Admins can do anything
-  if (req.user.role === 'admin') {
-    return next();
-  }
+export function isUserOwnerOrAdmin(getUserId = req => req.params.id) {
+  return (req, res, next) => {
+    // Admins can do anything
+    if (req.user.role === 'admin') {
+      return next();
+    }
 
-  // Check if user is accessing their own record
-  if (req.params.id !== req.user._id.toString()) {
-    return res.status(403).json({ error: 'Not authorized to access this user' });
-  }
+    const userId = getUserId(req);
 
-  next();
+    // Check if user is accessing their own record
+    if (userId !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Not authorized to access this user' });
+    }
+
+    next();
+  };
 }
 
 /**

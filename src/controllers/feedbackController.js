@@ -45,3 +45,17 @@ export const createFeedback = async (req, res) => {
     }
 }
 
+export const getAllFeedback = async (req, res) => {
+    try {
+        const allFeedback = await Feedback.find().sort({ createdAt: -1 });
+        res.json({
+            success: true,
+            data: allFeedback
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        })
+    }
+}
