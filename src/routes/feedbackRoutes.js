@@ -1,7 +1,7 @@
 import express from 'express';
 import { verifyFirebaseToken } from '../middleware/auth.js';
 import { isAdmin } from '../middleware/authorize.js';
-import { createFeedback } from '../controllers/feedbackController.js';
+import { createFeedback, getAllFeedback } from '../controllers/feedbackController.js';
 
 const router = express.Router();
 

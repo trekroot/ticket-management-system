@@ -149,8 +149,8 @@ export async function getAllMatches(req, res) {
 
     res.json({
       success: true,
-      count: result.matches.length,
-      matches: result.matches
+      count: result.data.length,
+      data: result.data
     });
   } catch (error) {
     console.error('[Matchmaker] Error getting all matches:', error);

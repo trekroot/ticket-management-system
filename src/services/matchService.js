@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+// import mongoose from 'mongoose'; //for transaction work/future impl
 import Match from '../models/Match.js';
 import { TicketRequest, BuyRequest, SellRequest } from '../models/TicketRequest.js';
 import User from '../models/User.js';
@@ -331,7 +331,7 @@ export async function getAllMatches(status = null) {
       })
       .sort({ updatedAt: -1 });
 
-    return { success: true, matches };
+    return { success: true, data: matches };
   } catch (error) {
     console.error('[MatchService] getAllMatches error:', error);
     return { success: false, error: error.message };
