@@ -153,6 +153,12 @@ export const createUser = async (req, res) => {
  */
 export const updateUser = async (req, res) => {
   try {
+    if (req.body?.role === 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'User is not authorized to make this change.'
+      });
+    }
 
     const user = await User.findByIdAndUpdate(
       req.params.id,
