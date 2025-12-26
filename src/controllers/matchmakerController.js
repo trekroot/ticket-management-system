@@ -51,7 +51,7 @@ export async function acceptMatch(req, res) {
       const initiatorUserId = result.matchBefore.initiatorTicketId?.userId?.toString();
       const matchedUserId = result.matchBefore.matchedTicketId?.userId?.toString();
       const isParticipant = [initiatorUserId, matchedUserId].includes(userId.toString());
-      console.log(`[Admin] logging audit for Admin: ${userId}, Match: ${matchId}. Reason: ${req.body.reason}.`);
+      console.log(`[Admin] Accept: logging audit for Admin: ${userId}, Match: ${matchId}. Reason: ${req.body.reason}.`);
 
       if (req.user.role === 'admin' && !isParticipant) {
         await logAdminAction({
@@ -95,12 +95,13 @@ export async function cancelMatch(req, res) {
       return res.status(400).json({ success: false, error: result.error });
     }
 
+    console.log('Entering result.matchBefore check prior to Lo Admin Action');
     // Log if admin acted on someone else's match
     if (result.matchBefore) {
       const initiatorUserId = result.matchBefore.initiatorTicketId?.userId?.toString();
       const matchedUserId = result.matchBefore.matchedTicketId?.userId?.toString();
       const isParticipant = [initiatorUserId, matchedUserId].includes(userId.toString());
-      console.log(`[Admin] logging audit for Admin: ${userId}, Match: ${matchId}. Reason: ${reason}.`);
+      console.log(`[Admin] Cancel: logging audit for Admin: ${userId}, Match: ${matchId}. Reason: ${reason}.`);
 
       if (req.user.role === 'admin' && !isParticipant) {
         await logAdminAction({
@@ -148,7 +149,7 @@ export async function completeMatch(req, res) {
       const initiatorUserId = result.matchBefore.initiatorTicketId?.userId?.toString();
       const matchedUserId = result.matchBefore.matchedTicketId?.userId?.toString();
       const isParticipant = [initiatorUserId, matchedUserId].includes(userId.toString());
-      console.log(`[Admin] logging audit for Admin: ${userId}, Match: ${matchId}. Reason: ${req.body.reason}.`);
+      console.log(`[Admin] Complete: logging audit for Admin: ${userId}, Match: ${matchId}. Reason: ${req.body.reason}.`);
 
       if (req.user.role === 'admin' && !isParticipant) {
         await logAdminAction({

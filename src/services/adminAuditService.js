@@ -98,8 +98,8 @@ export async function getAuditLogs({
   }
 
   const logs = await AdminAuditLog.find(query)
-    .populate('adminId', 'username firstName lastName')
-    .populate('affectedUserIds', 'username firstName lastName')
+    .populate('adminId', 'username firstName lastName email')
+    .populate('affectedUserIds', 'username firstName lastName email')
     .populate('targetId')
     .sort({ createdAt: -1 })
     .limit(limit)
