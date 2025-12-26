@@ -1,4 +1,5 @@
 import * as matchService from '../services/matchService.js';
+import { logAdminAction } from '../services/adminAuditService.js';
 
 /**
  * Match Controller - handles Match lifecycle actions
@@ -45,6 +46,28 @@ export async function acceptMatch(req, res) {
       return res.status(400).json({ success: false, error: result.error });
     }
 
+    // Log if admin acted on someone else's match
+    if (result.matchBefore) {
+      const initiatorUserId = result.matchBefore.initiatorTicketId?.userId?.toString();
+      const matchedUserId = result.matchBefore.matchedTicketId?.userId?.toString();
+      const isParticipant = [initiatorUserId, matchedUserId].includes(userId.toString());
+
+      if (req.user.role === 'admin' && !isParticipant) {
+        await logAdminAction({
+          adminId: userId,
+          action: 'accept_match',
+          targetType: 'Match',
+          targetId: matchId,
+          affectedUserIds: [initiatorUserId, matchedUserId].filter(Boolean),
+          changes: {
+            before: { status: result.matchBefore.status },
+            after: { status: result.match.status }
+          },
+          notes: req.body?.notes
+        });
+      }
+    }
+
     res.json({
       success: true,
       match: result.match
@@ -71,6 +94,28 @@ export async function cancelMatch(req, res) {
       return res.status(400).json({ success: false, error: result.error });
     }
 
+    // Log if admin acted on someone else's match
+    if (result.matchBefore) {
+      const initiatorUserId = result.matchBefore.initiatorTicketId?.userId?.toString();
+      const matchedUserId = result.matchBefore.matchedTicketId?.userId?.toString();
+      const isParticipant = [initiatorUserId, matchedUserId].includes(userId.toString());
+
+      if (req.user.role === 'admin' && !isParticipant) {
+        await logAdminAction({
+          adminId: userId,
+          action: 'cancel_match',
+          targetType: 'Match',
+          targetId: matchId,
+          affectedUserIds: [initiatorUserId, matchedUserId].filter(Boolean),
+          changes: {
+            before: { status: result.matchBefore.status },
+            after: { status: result.match.status }
+          },
+          notes: reason
+        });
+      }
+    }
+
     res.json({
       success: true,
       match: result.match
@@ -94,6 +139,28 @@ export async function completeMatch(req, res) {
 
     if (!result.success) {
       return res.status(400).json({ success: false, error: result.error });
+    }
+
+    // Log if admin acted on someone else's match
+    if (result.matchBefore) {
+      const initiatorUserId = result.matchBefore.initiatorTicketId?.userId?.toString();
+      const matchedUserId = result.matchBefore.matchedTicketId?.userId?.toString();
+      const isParticipant = [initiatorUserId, matchedUserId].includes(userId.toString());
+
+      if (req.user.role === 'admin' && !isParticipant) {
+        await logAdminAction({
+          adminId: userId,
+          action: 'complete_match',
+          targetType: 'Match',
+          targetId: matchId,
+          affectedUserIds: [initiatorUserId, matchedUserId].filter(Boolean),
+          changes: {
+            before: { status: result.matchBefore.status },
+            after: { status: result.match.status }
+          },
+          notes: req.body?.notes
+        });
+      }
     }
 
     res.json({

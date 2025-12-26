@@ -49,8 +49,8 @@ export async function initiateMatch(initiatorTicketId, matchedTicketId, userId) 
 
     // Create the match
     const match = await Match.create({
-      initiatorTicketId,
-      matchedTicketId,
+      initiatorTicketId: initiatorTicket,
+      matchedTicketId: matchedTicket,
       status: 'initiated',
       history: [{
         status: 'initiated',
@@ -84,6 +84,7 @@ export async function initiateMatch(initiatorTicketId, matchedTicketId, userId) 
 export async function acceptMatch(matchId, userId) {
   try {
     const match = await Match.findById(matchId)
+      .populate('initiatorTicketId')
       .populate('matchedTicketId');
 
     if (!match) {
@@ -93,11 +94,8 @@ export async function acceptMatch(matchId, userId) {
       return { success: false, error: `Match is ${match.status}, cannot accept` };
     }
 
-    // Verify user owns the matched ticket (they're the one accepting)
-    // TODO: verify that this is now correctly handled in authorize/middleware?
-    // if (match.matchedTicketId.userId.toString() !== userId.toString()) {
-    //   return { success: false, error: 'Not authorized to accept this match' };
-    // }
+    // Store copy of matchBefore
+    const matchBefore = match.toObject();
 
     // Update match
     match.status = 'accepted';
@@ -114,7 +112,7 @@ export async function acceptMatch(matchId, userId) {
       TicketRequest.findByIdAndUpdate(match.matchedTicketId._id, { status: 'matched' })
     ]);
 
-    return { success: true, match };
+    return { success: true, match, matchBefore };
   } catch (error) {
     console.error('[MatchService] acceptMatch error:', error);
     return { success: false, error: error.message };
@@ -143,6 +141,8 @@ export async function cancelMatch(matchId, userId, reason = '') {
     if (['completed', 'cancelled', 'expired'].includes(match.status)) {
       return { success: false, error: `Match is already ${match.status}` };
     }
+    
+    const matchBefore = match.toObject();
 
     // Update match
     match.status = 'cancelled';
@@ -159,7 +159,7 @@ export async function cancelMatch(matchId, userId, reason = '') {
       TicketRequest.findByIdAndUpdate(match.matchedTicketId._id, { status: 'open' })
     ]);
 
-    return { success: true, match };
+    return { success: true, match, matchBefore };
   } catch (error) {
     console.error('[MatchService] cancelMatch error:', error);
     return { success: false, error: error.message };
@@ -194,14 +194,7 @@ export async function completeMatch(matchId, userId) {
       return { success: false, error: `Match must be accepted before completing (currently: ${match.status})` };
     }
 
-    // Either party can mark complete
-    const isInitiator = match.initiatorTicketId.userId._id.toString() === userId.toString();
-    const isMatched = match.matchedTicketId.userId._id.toString() === userId.toString();
-
-    // TODO: low priority - can this be handled in authorize/middleware?
-    if (!isInitiator && !isMatched) {
-      return { success: false, error: 'Not authorized to complete this match' };
-    }
+    const matchBefore = match.toObject();
 
     // Update match
     match.status = 'completed';
@@ -244,7 +237,7 @@ export async function completeMatch(matchId, userId) {
       })
     ]);
 
-    return { success: true, match };
+    return { success: true, match, matchBefore };
   } catch (error) {
     console.error('[MatchService] completeMatch error:', error);
     return { success: false, error: error.message };
