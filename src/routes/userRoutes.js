@@ -38,15 +38,15 @@ router.route('/')
 
 // Parameter routes with suffixes
 router.route('/:id/deactivate')
-    .put(verifyFirebaseToken, isUserOwnerOrAdmin, deactivateUser);
+    .put(verifyFirebaseToken, isUserOwnerOrAdmin(req => req.params.id), deactivateUser);
 
 router.route('/:id/public')
     .get(verifyFirebaseToken, getUserPublicProfile);
 
 // Plain parameter routes LAST
 router.route('/:id')
-    .get(verifyFirebaseToken, isUserOwnerOrAdmin, getUserById)
-    .put(verifyFirebaseToken, isUserOwnerOrAdmin, updateUser)
-    .delete(verifyFirebaseToken, isUserOwnerOrAdmin, deleteUser);
+    .get(verifyFirebaseToken, isUserOwnerOrAdmin(req => req.params.id), getUserById)
+    .put(verifyFirebaseToken, isUserOwnerOrAdmin(req => req.params.id), updateUser)
+    .delete(verifyFirebaseToken, isUserOwnerOrAdmin(req => req.params.id), deleteUser);
 
 export default router;

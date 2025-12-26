@@ -1,4 +1,5 @@
 import * as matchService from '../services/matchService.js';
+import { logAdminAction } from '../services/adminAuditService.js';
 
 /**
  * Match Controller - handles Match lifecycle actions
@@ -45,6 +46,28 @@ export async function acceptMatch(req, res) {
       return res.status(400).json({ success: false, error: result.error });
     }
 
+    // Log if admin acted on someone else's match
+    if (result.matchBefore) {
+      const initiatorUserId = result.matchBefore.initiatorTicketId?.userId?.toString();
+      const matchedUserId = result.matchBefore.matchedTicketId?.userId?.toString();
+      const isParticipant = [initiatorUserId, matchedUserId].includes(userId.toString());
+
+      if (req.user.role === 'admin' && !isParticipant) {
+        await logAdminAction({
+          adminId: userId,
+          action: 'accept_match',
+          targetType: 'Match',
+          targetId: matchId,
+          affectedUserIds: [initiatorUserId, matchedUserId].filter(Boolean),
+          changes: {
+            before: { status: result.matchBefore.status },
+            after: { status: result.match.status }
+          },
+          notes: req.body?.notes
+        });
+      }
+    }
+
     res.json({
       success: true,
       match: result.match
@@ -71,6 +94,28 @@ export async function cancelMatch(req, res) {
       return res.status(400).json({ success: false, error: result.error });
     }
 
+    // Log if admin acted on someone else's match
+    if (result.matchBefore) {
+      const initiatorUserId = result.matchBefore.initiatorTicketId?.userId?.toString();
+      const matchedUserId = result.matchBefore.matchedTicketId?.userId?.toString();
+      const isParticipant = [initiatorUserId, matchedUserId].includes(userId.toString());
+
+      if (req.user.role === 'admin' && !isParticipant) {
+        await logAdminAction({
+          adminId: userId,
+          action: 'cancel_match',
+          targetType: 'Match',
+          targetId: matchId,
+          affectedUserIds: [initiatorUserId, matchedUserId].filter(Boolean),
+          changes: {
+            before: { status: result.matchBefore.status },
+            after: { status: result.match.status }
+          },
+          notes: reason
+        });
+      }
+    }
+
     res.json({
       success: true,
       match: result.match
@@ -94,6 +139,28 @@ export async function completeMatch(req, res) {
 
     if (!result.success) {
       return res.status(400).json({ success: false, error: result.error });
+    }
+
+    // Log if admin acted on someone else's match
+    if (result.matchBefore) {
+      const initiatorUserId = result.matchBefore.initiatorTicketId?.userId?.toString();
+      const matchedUserId = result.matchBefore.matchedTicketId?.userId?.toString();
+      const isParticipant = [initiatorUserId, matchedUserId].includes(userId.toString());
+
+      if (req.user.role === 'admin' && !isParticipant) {
+        await logAdminAction({
+          adminId: userId,
+          action: 'complete_match',
+          targetType: 'Match',
+          targetId: matchId,
+          affectedUserIds: [initiatorUserId, matchedUserId].filter(Boolean),
+          changes: {
+            before: { status: result.matchBefore.status },
+            after: { status: result.match.status }
+          },
+          notes: req.body?.notes
+        });
+      }
     }
 
     res.json({
@@ -128,6 +195,32 @@ export async function getUserMatches(req, res) {
     });
   } catch (error) {
     console.error('[Matchmaker] Error getting user matches:', error);
+    res.status(500).json({ success: false, error: 'Failed to get matches', details: error.message });
+  }
+}
+
+/**
+ * Get all matches (admin only)
+ * GET /api/matchmaker/admin/matches
+ * GET /api/matchmaker/admin/matches?status=pending
+ */
+export async function getAllMatches(req, res) {
+  try {
+    const { status } = req.query;
+
+    const result = await matchService.getAllMatches(status);
+
+    if (!result.success) {
+      return res.status(400).json({ success: false, error: result.error });
+    }
+
+    res.json({
+      success: true,
+      count: result.data.length,
+      data: result.data
+    });
+  } catch (error) {
+    console.error('[Matchmaker] Error getting all matches:', error);
     res.status(500).json({ success: false, error: 'Failed to get matches', details: error.message });
   }
 }

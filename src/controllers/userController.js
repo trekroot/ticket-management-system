@@ -1,5 +1,6 @@
 import { TicketRequest } from '../models/TicketRequest.js';
 import User from '../models/User.js';
+import { logAdminAction } from '../services/adminAuditService.js';
 
 /**
  * CONTROLLER: userController
@@ -153,6 +154,15 @@ export const createUser = async (req, res) => {
  */
 export const updateUser = async (req, res) => {
   try {
+    if (req.body?.role === 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'User is not authorized to make this change.'
+      });
+    }
+
+    // Get user before update for audit logging
+    const userBefore = await User.findById(req.params.id);
 
     const user = await User.findByIdAndUpdate(
       req.params.id,
@@ -168,6 +178,26 @@ export const updateUser = async (req, res) => {
         success: false,
         error: 'User not found'
       });
+    }
+
+    // Log if admin updated someone else's account
+    if (userBefore) {
+      const isOwner = req.user._id.toString() === req.params.id;
+
+      if (req.user.role === 'admin' && !isOwner) {
+        await logAdminAction({
+          adminId: req.user._id,
+          action: 'update_user',
+          targetType: 'User',
+          targetId: req.params.id,
+          affectedUserIds: [req.params.id],
+          changes: {
+            before: userBefore.toObject(),
+            after: user.toObject()
+          },
+          notes: req.body.adminNotes
+        });
+      }
     }
 
     res.json({
@@ -207,6 +237,9 @@ export const updateUser = async (req, res) => {
  */
 export const deactivateUser = async (req, res) => {
   try {
+    // Get user before for audit logging
+    const userBefore = await User.findById(req.params.id);
+
     const user = await User.findByIdAndUpdate(
       req.params.id,
       {
@@ -229,6 +262,26 @@ export const deactivateUser = async (req, res) => {
       { userId: req.params.id, status: { $in: ['open', 'matched'] } },
       { status: 'deactivated' }
     );
+
+    // Log if admin deactivated someone else's account
+    if (userBefore) {
+      const isOwner = req.user._id.toString() === req.params.id;
+
+      if (req.user.role === 'admin' && !isOwner) {
+        await logAdminAction({
+          adminId: req.user._id,
+          action: 'deactivate_user',
+          targetType: 'User',
+          targetId: req.params.id,
+          affectedUserIds: [req.params.id],
+          changes: {
+            before: { deactivated: userBefore.deactivated },
+            after: { deactivated: true, ticketsCancelled: ticketResult.modifiedCount }
+          },
+          notes: req.body.adminNotes
+        });
+      }
+    }
 
     res.json({
       success: true,
@@ -257,6 +310,9 @@ export const deactivateUser = async (req, res) => {
  */
 export const deleteUser = async (req, res) => {
   try {
+    // Get user before delete for audit logging
+    const userBefore = await User.findById(req.params.id);
+
     const user = await User.findByIdAndDelete(req.params.id);
 
     if (!user) {
@@ -271,7 +327,27 @@ export const deleteUser = async (req, res) => {
       { userId: req.params.id, status: { $in: ['open', 'matched'] } },
       { status: 'deactivated' }
     );
-    
+
+    // Log if admin deleted someone else's account
+    if (userBefore) {
+      const isOwner = req.user._id.toString() === req.params.id;
+
+      if (req.user.role === 'admin' && !isOwner) {
+        await logAdminAction({
+          adminId: req.user._id,
+          action: 'delete_user',
+          targetType: 'User',
+          targetId: req.params.id,
+          affectedUserIds: [req.params.id],
+          changes: {
+            before: userBefore.toObject(),
+            after: null
+          },
+          notes: req.body.adminNotes
+        });
+      }
+    }
+
     res.json({
       success: true,
       message: 'User permanently deleted',

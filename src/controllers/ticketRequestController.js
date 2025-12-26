@@ -4,6 +4,7 @@ import Game from '../models/Game.js';
 import { addOwnerFlag, hidePrivateData } from '../utils/ticketHelper.js';
 import { SEATING_FORMATS, SECTION_GROUPS } from '../models/SeatingFormat.js';
 import Match from '../models/Match.js';
+import { logAdminAction } from '../services/adminAuditService.js';
 
 /**
  * CONTROLLER: ticketRequestController
@@ -231,7 +232,7 @@ export const updateRequest = async (req, res) => {
         { initiatorTicketId: req.params.id },
         { matchedTicketId: req.params.id }
       ],
-      status: {$in: ['pending', 'accepted']}
+      status: {$in: ['initiated', 'accepted']}
     };
 
     const match = await Match.find(query);
@@ -242,6 +243,9 @@ export const updateRequest = async (req, res) => {
         error: 'Cannot update ticket in active exchange! Please contact counterparty or cancel exchange.'
       });
     }
+
+    // Get ticket before update for audit logging
+    const ticketBefore = await TicketRequest.findById(req.params.id);
 
     // findByIdAndUpdate options:
     // - new: true returns the updated document (not the old one)
@@ -259,6 +263,27 @@ export const updateRequest = async (req, res) => {
         success: false,
         error: 'Ticket request not found'
       });
+    }
+
+    // Log if admin acted on someone else's ticket
+    if (ticketBefore) {
+      const ticketOwnerId = ticketBefore.userId?.toString();
+      const isOwner = req.user._id.toString() === ticketOwnerId;
+
+      if (req.user.role === 'admin' && !isOwner) {
+        await logAdminAction({
+          adminId: req.user._id,
+          action: 'update_ticket',
+          targetType: 'TicketRequest',
+          targetId: req.params.id,
+          affectedUserIds: [ticketOwnerId],
+          changes: {
+            before: ticketBefore.toObject(),
+            after: request.toObject()
+          },
+          notes: req.body.adminNotes
+        });
+      }
     }
 
     res.json({
@@ -290,6 +315,9 @@ export const updateRequest = async (req, res) => {
 // TODO: Consider soft delete instead of hard delete - requires schema change to ticketRequest.js
 export const deleteRequest = async (req, res) => {
   try {
+    // Get ticket before delete for audit logging
+    const ticketBefore = await TicketRequest.findById(req.params.id);
+
     const request = await TicketRequest.findByIdAndDelete(req.params.id);
 
     if (!request) {
@@ -297,6 +325,27 @@ export const deleteRequest = async (req, res) => {
         success: false,
         error: 'Ticket request not found'
       });
+    }
+
+    // Log if admin deleted someone else's ticket
+    if (ticketBefore) {
+      const ticketOwnerId = ticketBefore.userId?.toString();
+      const isOwner = req.user._id.toString() === ticketOwnerId;
+
+      if (req.user.role === 'admin' && !isOwner) {
+        await logAdminAction({
+          adminId: req.user._id,
+          action: 'delete_ticket',
+          targetType: 'TicketRequest',
+          targetId: req.params.id,
+          affectedUserIds: [ticketOwnerId],
+          changes: {
+            before: ticketBefore.toObject(),
+            after: null
+          },
+          notes: req.body.adminNotes
+        });
+      }
     }
 
     res.json({
