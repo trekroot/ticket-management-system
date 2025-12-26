@@ -51,6 +51,7 @@ export async function acceptMatch(req, res) {
       const initiatorUserId = result.matchBefore.initiatorTicketId?.userId?.toString();
       const matchedUserId = result.matchBefore.matchedTicketId?.userId?.toString();
       const isParticipant = [initiatorUserId, matchedUserId].includes(userId.toString());
+      console.log(`[Admin] logging audit for Admin: ${userId}, Match: ${matchId}. Reason: ${req.body.reason}.`);
 
       if (req.user.role === 'admin' && !isParticipant) {
         await logAdminAction({
@@ -99,6 +100,7 @@ export async function cancelMatch(req, res) {
       const initiatorUserId = result.matchBefore.initiatorTicketId?.userId?.toString();
       const matchedUserId = result.matchBefore.matchedTicketId?.userId?.toString();
       const isParticipant = [initiatorUserId, matchedUserId].includes(userId.toString());
+      console.log(`[Admin] logging audit for Admin: ${userId}, Match: ${matchId}. Reason: ${reason}.`);
 
       if (req.user.role === 'admin' && !isParticipant) {
         await logAdminAction({
@@ -146,6 +148,7 @@ export async function completeMatch(req, res) {
       const initiatorUserId = result.matchBefore.initiatorTicketId?.userId?.toString();
       const matchedUserId = result.matchBefore.matchedTicketId?.userId?.toString();
       const isParticipant = [initiatorUserId, matchedUserId].includes(userId.toString());
+      console.log(`[Admin] logging audit for Admin: ${userId}, Match: ${matchId}. Reason: ${req.body.reason}.`);
 
       if (req.user.role === 'admin' && !isParticipant) {
         await logAdminAction({

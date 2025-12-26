@@ -29,6 +29,8 @@ export async function logAdminAction({
   changes,
   notes
 }) {
+
+  console.log(`[Admin] logging in AuditService for Admin: ${adminId}, Match: ${targetType}. Reason: ${notes}.`);
   const log = await AdminAuditLog.create({
     adminId,
     action,
