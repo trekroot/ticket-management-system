@@ -87,9 +87,8 @@ export async function cancelMatch(req, res) {
     const { matchId } = req.params;
     const userId = req.user._id;
     const { reason } = req.body;
-    const cancelReason = 'ADMIN ACTION: ' + reason;
 
-    const result = await matchService.cancelMatch(matchId, userId, cancelReason);
+    const result = await matchService.cancelMatch(matchId, userId, reason);
 
     if (!result.success) {
       return res.status(400).json({ success: false, error: result.error });
