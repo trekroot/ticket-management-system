@@ -63,7 +63,7 @@ export async function acceptMatch(req, res) {
             before: { status: result.matchBefore.status },
             after: { status: result.match.status }
           },
-          notes: req.body?.notes
+          notes: req.body?.reason
         });
       }
     }
@@ -158,7 +158,7 @@ export async function completeMatch(req, res) {
             before: { status: result.matchBefore.status },
             after: { status: result.match.status }
           },
-          notes: req.body?.notes
+          notes: req.body?.reason
         });
       }
     }
