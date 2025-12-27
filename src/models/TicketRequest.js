@@ -74,7 +74,7 @@ const ticketRequestSchema = new mongoose.Schema({
     lastName: String
   },
 
-  // Snapshot of counterparty info at time of match completion
+  // Snapshot of counterparty info at time of match accepted
   counterpartySnapshot: {
     discordHandle: String,
     username: String,

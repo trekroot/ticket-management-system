@@ -5,6 +5,7 @@ import { addOwnerFlag, hidePrivateData } from '../utils/ticketHelper.js';
 import { SEATING_FORMATS, SECTION_GROUPS } from '../models/SeatingFormat.js';
 import Match from '../models/Match.js';
 import { logAdminAction } from '../services/adminAuditService.js';
+import { getMatchInfoForTickets } from '../services/matchService.js';
 
 /**
  * CONTROLLER: ticketRequestController
@@ -427,13 +428,20 @@ export const getRequestsByUser = async (req, res) => {
       .populate('gameId', 'opponent date venue tbdTime matchType')
       .sort({ createdAt: -1 });
 
+    // Get match info for user's tickets (lightweight query using .lean())
+    const ticketIds = ticketRequests.map(t => t._id);
+    const matchInfoMap = await getMatchInfoForTickets(ticketIds);
+
+    // Enrich tickets with match info (counterpartySnapshot already on ticket after accept)
     const flaggedRequests = ticketRequests.map(ticket => {
       const result = addOwnerFlag(ticket, userId);
-      if (!req.user) {
-        result.userId = null;
-        result.userSnapshot = { firstName: "••••••", lastName: "••••••", username: null };
-        result.notes = null;
+
+      // Attach match info if this ticket has an active match
+      const matchInfo = matchInfoMap.get(ticket._id.toString());
+      if (matchInfo) {
+        result.matchInfo = matchInfo;
       }
+
       return result;
     });
 
