@@ -2,16 +2,24 @@
 
 A RESTful ticket management system built with Node.js, Express, and MongoDB.
 
+Designed for the Dirigo Union, supporter's group of the Hearts of Pine.
+
 ## Features
 
+- Firebase Auth and devmode skip auth option for local development
 - Create, read, update, and delete tickets
+- Match with other ticket requests, exchange tickets with other users (mutual consent based)
+- Allow trading of tickets for other tickets
+- Scoring of accuracy of a match
+- Ability to match with a ticket buy/sale without creating a request
+- Admin feature support
 - RESTful API architecture
 - MongoDB database integration
 
 ## Prerequisites
 
-- Node.js (v14 or higher)
-- MongoDB
+- Node.js (v18 or higher)
+- MongoDB (local)
 
 ## Installation
 
@@ -52,7 +60,7 @@ ticket-management-system/
 └── .env.example
 ```
 
-## Tikcet/Exchange Match Workflow:
+## Ticket/Exchange Match Workflow:
   State mapping:
   | Action      | Ticket A  | Ticket B  | Match     |
   |-------------|-----------|-----------|-----------|

@@ -14,11 +14,7 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: [
-    'http://ticket-management-system.s3-website-us-east-1.amazonaws.com',
-    'https://d2175tj5v07y9z.cloudfront.net',
-    'http://localhost:5173'  // Keep for local dev
-  ],
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173'],
   credentials: true,  // CRITICAL - allows cookies/auth headers
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization']
