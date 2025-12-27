@@ -7,6 +7,21 @@ import { logAdminAction } from '../services/adminAuditService.js';
  */
 
 /**
+ * Check if admin is acting on someone else's match
+ * @param {Object} match - Match document (with populated tickets)
+ * @param {string} actingUserId - The user performing the action
+ * @returns {{ isAdminEdit: boolean, affectedUserIds: string[] }}
+ */
+function checkAdminEdit(match, actingUserId) {
+  const initiatorUserId = match.initiatorTicketId?.userId?.toString();
+  const matchedUserId = match.matchedTicketId?.userId?.toString();
+  const affectedUserIds = [initiatorUserId, matchedUserId].filter(Boolean);
+  const isParticipant = affectedUserIds.includes(actingUserId.toString());
+
+  return { isAdminEdit: !isParticipant, affectedUserIds };
+}
+
+/**
  * Initiate a match between two tickets
  * POST /api/matchmaker/:sourceTicketId/match/:targetTicketId
  */
@@ -47,26 +62,20 @@ export async function acceptMatch(req, res) {
     }
 
     // Log if admin acted on someone else's match
-    if (result.matchBefore) {
-      const initiatorUserId = result.matchBefore.initiatorTicketId?.userId?.toString();
-      const matchedUserId = result.matchBefore.matchedTicketId?.userId?.toString();
-      const isParticipant = [initiatorUserId, matchedUserId].includes(userId.toString());
-      console.log(`[Admin] Accept: logging audit for Admin: ${userId}, Match: ${matchId}. Reason: ${req.body.reason}.`);
-
-      if (req.user.role === 'admin' && !isParticipant) {
-        await logAdminAction({
-          adminId: userId,
-          action: 'accept_match',
-          targetType: 'Match',
-          targetId: matchId,
-          affectedUserIds: [initiatorUserId, matchedUserId].filter(Boolean),
-          changes: {
-            before: { status: result.matchBefore.status },
-            after: { status: result.match.status }
-          },
-          notes: req.body?.reason
-        });
-      }
+    const { isAdminEdit, affectedUserIds } = checkAdminEdit(result.match, userId);
+    if (req.user.role === 'admin' && isAdminEdit) {
+      await logAdminAction({
+        adminId: userId,
+        action: 'accept_match',
+        targetType: 'Match',
+        targetId: matchId,
+        affectedUserIds,
+        changes: {
+          before: { status: result.matchBefore.status },
+          after: { status: result.match.status }
+        },
+        notes: req.body?.reason
+      });
     }
 
     res.json({
@@ -95,28 +104,21 @@ export async function cancelMatch(req, res) {
       return res.status(400).json({ success: false, error: result.error });
     }
 
-    console.log('Entering result.matchBefore check prior to Lo Admin Action');
     // Log if admin acted on someone else's match
-    if (result.matchBefore) {
-      const initiatorUserId = result.matchBefore.initiatorTicketId?.userId?.toString();
-      const matchedUserId = result.matchBefore.matchedTicketId?.userId?.toString();
-      const isParticipant = [initiatorUserId, matchedUserId].includes(userId.toString());
-      console.log(`[Admin] Cancel: logging audit for Admin: ${userId}, Match: ${matchId}. Reason: ${reason}.`);
-
-      if (req.user.role === 'admin' && !isParticipant) {
-        await logAdminAction({
-          adminId: userId,
-          action: 'cancel_match',
-          targetType: 'Match',
-          targetId: matchId,
-          affectedUserIds: [initiatorUserId, matchedUserId].filter(Boolean),
-          changes: {
-            before: { status: result.matchBefore.status },
-            after: { status: result.match.status }
-          },
-          notes: reason
-        });
-      }
+    const { isAdminEdit, affectedUserIds } = checkAdminEdit(result.match, userId);
+    if (req.user.role === 'admin' && isAdminEdit) {
+      await logAdminAction({
+        adminId: userId,
+        action: 'cancel_match',
+        targetType: 'Match',
+        targetId: matchId,
+        affectedUserIds,
+        changes: {
+          before: { status: result.matchBefore.status },
+          after: { status: result.match.status }
+        },
+        notes: reason
+      });
     }
 
     res.json({
@@ -145,26 +147,20 @@ export async function completeMatch(req, res) {
     }
 
     // Log if admin acted on someone else's match
-    if (result.matchBefore) {
-      const initiatorUserId = result.matchBefore.initiatorTicketId?.userId?.toString();
-      const matchedUserId = result.matchBefore.matchedTicketId?.userId?.toString();
-      const isParticipant = [initiatorUserId, matchedUserId].includes(userId.toString());
-      console.log(`[Admin] Complete: logging audit for Admin: ${userId}, Match: ${matchId}. Reason: ${req.body.reason}.`);
-
-      if (req.user.role === 'admin' && !isParticipant) {
-        await logAdminAction({
-          adminId: userId,
-          action: 'complete_match',
-          targetType: 'Match',
-          targetId: matchId,
-          affectedUserIds: [initiatorUserId, matchedUserId].filter(Boolean),
-          changes: {
-            before: { status: result.matchBefore.status },
-            after: { status: result.match.status }
-          },
-          notes: req.body?.reason
-        });
-      }
+    const { isAdminEdit, affectedUserIds } = checkAdminEdit(result.match, userId);
+    if (req.user.role === 'admin' && isAdminEdit) {
+      await logAdminAction({
+        adminId: userId,
+        action: 'complete_match',
+        targetType: 'Match',
+        targetId: matchId,
+        affectedUserIds,
+        changes: {
+          before: { status: result.matchBefore.status },
+          after: { status: result.match.status }
+        },
+        notes: req.body?.reason
+      });
     }
 
     res.json({
