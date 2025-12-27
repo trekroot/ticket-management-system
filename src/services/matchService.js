@@ -13,7 +13,7 @@ import User from '../models/User.js';
 /**
  * Initiate a match between two tickets
  * - Creates Match with status 'initiated'
- * - Sets BOTH tickets to 'pending'
+ * - Sets BOTH tickets to 'matched'
  *
  * @param {string} initiatorTicketId - Ticket ID of the user initiating
  * @param {string} matchedTicketId - Ticket ID they want to match with
@@ -59,10 +59,10 @@ export async function initiateMatch(initiatorTicketId, matchedTicketId, userId) 
       }]
     });
 
-    // Update BOTH tickets to pending
+    // Update BOTH tickets to matched
     await Promise.all([
-      TicketRequest.findByIdAndUpdate(initiatorTicketId, { status: 'pending' }),
-      TicketRequest.findByIdAndUpdate(matchedTicketId, { status: 'pending' })
+      TicketRequest.findByIdAndUpdate(initiatorTicketId, { status: 'matched' }),
+      TicketRequest.findByIdAndUpdate(matchedTicketId, { status: 'matched' })
     ]);
 
     return { success: true, match };
@@ -106,10 +106,38 @@ export async function acceptMatch(matchId, userId) {
     });
     await match.save();
 
-    // Update both tickets to 'matched'
+    // Fetch users separately for counterparty snapshots
+    const [initiatorUser, matchedUser] = await Promise.all([
+      User.findById(match.initiatorTicketId.userId).select('discordHandle username firstName lastName email'),
+      User.findById(match.matchedTicketId.userId).select('discordHandle username firstName lastName email')
+    ]);
+
+    const initiatorSnapshot = {
+      discordHandle: initiatorUser.discordHandle,
+      username: initiatorUser.username,
+      firstName: initiatorUser.firstName,
+      lastName: initiatorUser.lastName,
+      email: initiatorUser.email
+    };
+
+    const matchedSnapshot = {
+      discordHandle: matchedUser.discordHandle,
+      username: matchedUser.username,
+      firstName: matchedUser.firstName,
+      lastName: matchedUser.lastName,
+      email: matchedUser.email
+    };
+
+    // Update both tickets to matched with counterparty snapshots
     await Promise.all([
-      TicketRequest.findByIdAndUpdate(match.initiatorTicketId, { status: 'matched' }),
-      TicketRequest.findByIdAndUpdate(match.matchedTicketId._id, { status: 'matched' })
+      TicketRequest.findByIdAndUpdate(match.initiatorTicketId._id, {
+        status: 'matched',
+        counterpartySnapshot: matchedSnapshot  // initiator gets matched user's info
+      }),
+      TicketRequest.findByIdAndUpdate(match.matchedTicketId._id, {
+        status: 'matched',
+        counterpartySnapshot: initiatorSnapshot  // matched gets initiator's info
+      })
     ]);
 
     return { success: true, match, matchBefore };
@@ -153,10 +181,18 @@ export async function cancelMatch(matchId, userId, reason = '') {
     });
     await match.save();
 
-    // Reopen both tickets
+    // Reopen tickets, or deactivate if they were auto-created for direct match
+    const initiatorStatus = match.initiatorTicketId.isDirectMatch ? 'deactivated' : 'open';
+    const matchedStatus = match.matchedTicketId.isDirectMatch ? 'deactivated' : 'open';
+
     await Promise.all([
-      TicketRequest.findByIdAndUpdate(match.initiatorTicketId._id, { status: 'open' }),
-      TicketRequest.findByIdAndUpdate(match.matchedTicketId._id, { status: 'open' })
+      TicketRequest.findByIdAndUpdate(match.initiatorTicketId._id, {
+        status: initiatorStatus, counterpartySnapshot: null
+      }),
+      TicketRequest.findByIdAndUpdate(match.matchedTicketId._id, {
+        status: matchedStatus,
+        counterpartySnapshot: null
+      })
     ]);
 
     return { success: true, match, matchBefore };
@@ -178,14 +214,8 @@ export async function cancelMatch(matchId, userId, reason = '') {
 export async function completeMatch(matchId, userId) {
   try {
     const match = await Match.findById(matchId)
-      .populate({
-        path: 'initiatorTicketId',
-        populate: { path: 'userId', select: 'discordHandle username firstName lastName email' }
-      })
-      .populate({
-        path: 'matchedTicketId',
-        populate: { path: 'userId', select: 'discordHandle username firstName lastName email' }
-      });
+      .populate('initiatorTicketId')
+      .populate('matchedTicketId');
 
     if (!match) {
       return { success: false, error: 'Match not found' };
@@ -194,6 +224,7 @@ export async function completeMatch(matchId, userId) {
       return { success: false, error: `Match must be accepted before completing (currently: ${match.status})` };
     }
 
+    // Snapshot before changes (userId is ObjectId here, not populated)
     const matchBefore = match.toObject();
 
     // Update match
@@ -205,36 +236,10 @@ export async function completeMatch(matchId, userId) {
     });
     await match.save();
 
-    // Build counterparty snapshots (freeze user info at completion time)
-    const initiatorUser = match.initiatorTicketId.userId;
-    const matchedUser = match.matchedTicketId.userId;
-
-    const initiatorSnapshot = {
-      discordHandle: initiatorUser.discordHandle,
-      username: initiatorUser.username,
-      firstName: initiatorUser.firstName,
-      lastName: initiatorUser.lastName,
-      email: initiatorUser.email
-    };
-
-    const matchedSnapshot = {
-      discordHandle: matchedUser.discordHandle,
-      username: matchedUser.username,
-      firstName: matchedUser.firstName,
-      lastName: matchedUser.lastName,
-      email: matchedUser.email
-    };
-
     // Complete both tickets with counterparty snapshots
     await Promise.all([
-      TicketRequest.findByIdAndUpdate(match.initiatorTicketId._id, {
-        status: 'completed',
-        counterpartySnapshot: matchedSnapshot  // initiator gets matched user's info
-      }),
-      TicketRequest.findByIdAndUpdate(match.matchedTicketId._id, {
-        status: 'completed',
-        counterpartySnapshot: initiatorSnapshot  // matched gets initiator's info
-      })
+      TicketRequest.findByIdAndUpdate(match.initiatorTicketId._id, { status: 'completed' }),
+      TicketRequest.findByIdAndUpdate(match.matchedTicketId._id, { status: 'completed' })
     ]);
 
     return { success: true, match, matchBefore };
@@ -332,6 +337,43 @@ export async function getAllMatches(status = null) {
 }
 
 /**
+ * Get minimal match info for a list of tickets
+ * Returns a Map of ticketId -> { matchId, matchStatus, isInitiator, awaitingMyAction }
+ *
+ * @param {Array} ticketIds - Array of ticket ObjectIds
+ * @returns {Map} ticketId string -> matchInfo object
+ */
+export async function getMatchInfoForTickets(ticketIds) {
+  const activeMatches = await Match.find({
+    $or: [
+      { initiatorTicketId: { $in: ticketIds } },
+      { matchedTicketId: { $in: ticketIds } }
+    ],
+    status: { $in: ['initiated', 'accepted'] }
+  }).lean();
+
+  const matchInfoMap = new Map();
+  const ticketIdStrings = ticketIds.map(id => id.toString());
+
+  for (const match of activeMatches) {
+    const initiatorIdStr = match.initiatorTicketId.toString();
+    const matchedIdStr = match.matchedTicketId.toString();
+    const isInitiator = ticketIdStrings.includes(initiatorIdStr);
+
+    const userTicketId = isInitiator ? initiatorIdStr : matchedIdStr;
+
+    matchInfoMap.set(userTicketId, {
+      matchId: match._id,
+      matchStatus: match.status,
+      isInitiator,
+      awaitingMyAction: !isInitiator && match.status === 'initiated'
+    });
+  }
+
+  return matchInfoMap;
+}
+
+/**
  * Initiate a direct match - auto-creates a ticket for the initiator
  * Used when user wants to match with a ticket but doesn't have their own
  *
@@ -373,7 +415,7 @@ export async function initiateDirectMatch(targetTicketId, userId) {
         sectionTypeDesired: targetTicket.sectionTypeOffered,
         numTickets: targetTicket.numTickets || targetTicket.seats?.length || 1,
         anySection: false,
-        status: 'pending',
+        status: 'matched',
         isDirectMatch: true,
         userSnapshot: {
           discordHandle: user.discordHandle,
@@ -392,7 +434,7 @@ export async function initiateDirectMatch(targetTicketId, userId) {
         gameId: targetTicket.gameId._id,
         sectionTypeOffered: targetTicket.sectionTypeDesired || 'standard',
         numTickets: targetTicket.numTickets || 1,
-        status: 'pending',
+        status: 'matched',
         isDirectMatch: true,
         userSnapshot: {
           discordHandle: user.discordHandle,
@@ -416,8 +458,8 @@ export async function initiateDirectMatch(targetTicketId, userId) {
       }]
     });
 
-    // Update target ticket to pending (has incoming match request)
-    await TicketRequest.findByIdAndUpdate(targetTicketId, { status: 'pending' });
+    // Update target ticket to matched (has incoming match request)
+    await TicketRequest.findByIdAndUpdate(targetTicketId, { status: 'matched' });
 
     return { success: true, match, createdTicket };
   } catch (error) {
