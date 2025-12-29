@@ -63,8 +63,8 @@ export const SECTION_GROUPS = {
  * @param {Object} ticket
  * @returns {string} human-readable label
  */
-export function getSectionTypeLabel(ticket) {
-  const sectionType = ticket.effectiveSectionType;
+export function getSectionTypeLabel(sectionType) {
+  // const sectionType = ticket.effectiveSectionType;
   return SECTION_GROUPS[sectionType]?.label || sectionType;
 }
 

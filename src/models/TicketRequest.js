@@ -27,17 +27,6 @@ const ticketRequestSchema = new mongoose.Schema({
     ref: 'Game',
     required: false
   },
-  
-  // Stadium section type - used for matching
-  // TODO: TEMPORARY TO RETAIN COMPATIBILITY
-  sectionType: {
-    type: String,
-    enum: ['supporters', 'standard', 'standing_room', 'deweys', 'highroller'],
-    required: function() {
-      // Traders & Sellers always need a sectionType, Buyers only need sectionType if not selecting "any"
-      return this.__t !== 'BuyRequest' || !this.anySection;
-    }
-  },
 
   // How many tickets
   numTickets: {
@@ -45,7 +34,7 @@ const ticketRequestSchema = new mongoose.Schema({
     min: 1,
     required: function() {
       // Sellers only need numTickets if section doesn't have seats, else numTickets
-      return this.__t === 'BuyRequest' || [119, 120, 'standing_room'].includes(this.section);
+      return this.__t === 'BuyRequest' || this.__t === 'TradeRequest' || this.__t === 'SellRequest' && [119, 120, 'standing_room'].includes(this.section);
     }
   },
 
@@ -114,18 +103,22 @@ ticketRequestSchema.virtual('effectiveSectionType').get(function() {
   return null; // Trade uses explicit fields
 });
 
-// Include virtuals in JSON/Object output + auto-add sectionTypeLabel
+// Include virtuals in JSON/Object output + auto-add sectionType labels
 ticketRequestSchema.set('toJSON', {
   virtuals: true,
   transform: (doc, ret) => {
-    ret.sectionTypeLabel = getSectionTypeLabel(doc);
+    if (doc.sectionType) ret.sectionTypeLabel = getSectionTypeLabel(doc.sectionType);
+    if (doc.sectionTypeOffered) ret.sectionTypeOfferedLabel = getSectionTypeLabel(doc.sectionTypeOffered);
+    if (doc.sectionTypeDesired) ret.sectionTypeDesiredLabel = getSectionTypeLabel(doc.sectionTypeDesired);
     return ret;
   }
 });
 ticketRequestSchema.set('toObject', {
   virtuals: true,
   transform: (doc, ret) => {
-    ret.sectionTypeLabel = getSectionTypeLabel(doc);
+    if (doc.sectionType) ret.sectionTypeLabel = getSectionTypeLabel(doc.sectionType);
+    if (doc.sectionTypeOffered) ret.sectionTypeOfferedLabel = getSectionTypeLabel(doc.sectionTypeOffered);
+    if (doc.sectionTypeDesired) ret.sectionTypeDesiredLabel = getSectionTypeLabel(doc.sectionTypeDesired);
     return ret;
   }
 });
@@ -231,7 +224,6 @@ const sellRequestSchema = new mongoose.Schema({
     type: String,
     uppercase: true,
     match: /^[A-T]$/
-    match: /^[A-T]$/
   },
 
   // Seat numbers for standard seating [1-20]
@@ -254,20 +246,33 @@ const tradeRequestSchema = new mongoose.Schema({
     default: false
   },
 
+  fullSeasonTrade: {
+    type: Boolean,
+    default: false
+  },
+
   // Games the user wants to trade for (required, at least one)
-  desiredGameIds: {
+  gamesOffered: {
     type: [mongoose.Schema.Types.ObjectId],
     ref: 'Game',
     required: function() {
-      return !this.anyGame
-    },
-    validate: {
-      validator: function(v) {
-        if (this.anyGame) return true;
-        return v && v.length > 0;
-      },
-      message: 'At least one desired game is required when not trading for any game'
+      return !this.fullSeasonTrade
     }
+  },
+
+  // Games the user wants to trade for (required, at least one)
+  gamesDesired: {
+    type: [mongoose.Schema.Types.ObjectId],
+    ref: 'Game',
+    required: function() {
+      return !this.anyGame || !this.fullSeasonTrade
+    }
+  },
+
+  // Flag for allowing visibility to buyers/sellers, false: TRADE ONLY
+  allowVisibility: {
+    type: Boolean,
+    default: false
   },
 
   // Flag for desiring any section
@@ -276,12 +281,18 @@ const tradeRequestSchema = new mongoose.Schema({
     default: false
   },
   
+  // Offered Section Type
+  sectionTypeOffered: {
+    type: String,
+    enum: ['supporters', 'standard', 'standing_room', 'deweys', 'highroller'],
+    required: true
+  },
+  
   // Desired Section Type
-  desiredSectionType: {
+  sectionTypeDesired: {
     type: String,
     enum: ['supporters', 'standard', 'standing_room', 'deweys', 'highroller'],
     required: function() {
-      // Traders & Sellers always need a sectionType, Buyers only need sectionType if not selecting "any"
       return !this.anySection;
     }
   },
