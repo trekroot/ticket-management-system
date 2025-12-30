@@ -280,14 +280,18 @@ export async function getMatchesForUser(userId, status = null) {
         path: 'initiatorTicketId',
         populate: [
           { path: 'userId', select: 'username discordHandle email firstName lastName' },
-          { path: 'gameId', select: 'opponent date venue' }
+          { path: 'gameId', select: 'opponent date venue' },
+          { path: 'gamesOffered', select: 'opponent date venue' },
+          { path: 'gamesDesired', select: 'opponent date venue' }
         ]
       })
       .populate({
         path: 'matchedTicketId',
         populate: [
           { path: 'userId', select: 'username discordHandle email firstName lastName' },
-          { path: 'gameId', select: 'opponent date venue' }
+          { path: 'gameId', select: 'opponent date venue' },
+          { path: 'gamesOffered', select: 'opponent date venue' },
+          { path: 'gamesDesired', select: 'opponent date venue' }
         ]
       })
       .sort({ updatedAt: -1 });
@@ -317,14 +321,18 @@ export async function getAllMatches(status = null) {
         path: 'initiatorTicketId',
         populate: [
           { path: 'userId', select: 'username discordHandle email firstName lastName' },
-          { path: 'gameId', select: 'opponent date venue' }
+          { path: 'gameId', select: 'opponent date venue' },
+          { path: 'gamesOffered', select: 'opponent date venue' },
+          { path: 'gamesDesired', select: 'opponent date venue' }
         ]
       })
       .populate({
         path: 'matchedTicketId',
         populate: [
           { path: 'userId', select: 'username discordHandle email firstName lastName' },
-          { path: 'gameId', select: 'opponent date venue' }
+          { path: 'gameId', select: 'opponent date venue' },
+          { path: 'gamesOffered', select: 'opponent date venue' },
+          { path: 'gamesDesired', select: 'opponent date venue' }
         ]
       })
       .sort({ updatedAt: -1 });
@@ -385,7 +393,8 @@ export async function getMatchInfoForTickets(ticketIds) {
 export async function initiateDirectMatch(targetTicketId, userId) {
   try {
     // Get the target ticket
-    const targetTicket = await TicketRequest.findById(targetTicketId).populate('gameId');
+    const targetTicket = await TicketRequest.findById(targetTicketId)
+      .populate('gameId').populate('gamesOffered').populate('gamesDesired');
 
     if (!targetTicket) {
       return { success: false, error: 'Target ticket not found' };

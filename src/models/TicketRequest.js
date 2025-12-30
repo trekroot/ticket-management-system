@@ -33,8 +33,8 @@ const ticketRequestSchema = new mongoose.Schema({
     type: String,
     enum: ['supporters', 'standard', 'standing_room', 'deweys', 'highroller'],
     required: function() {
-      // Traders & Sellers always need a sectionType, Buyers only need sectionType if not selecting "any"
-      return this.__t !== 'BuyRequest' || !this.anySection;
+      // Sellers always need a sectionType, Buyers only need sectionType if not selecting "any"
+      return (this.__t === 'SellRequest' || !this.anySection) && this.__t !== 'TradeRequest';
     }
   },
 
@@ -117,14 +117,18 @@ ticketRequestSchema.virtual('effectiveSectionType').get(function() {
 ticketRequestSchema.set('toJSON', {
   virtuals: true,
   transform: (doc, ret) => {
-    ret.sectionTypeLabel = getSectionTypeLabel(doc);
+    if (doc.sectionType) ret.sectionTypeLabel = getSectionTypeLabel(doc.sectionType);
+    if (doc.sectionTypeOffered) ret.sectionTypeOfferedLabel = getSectionTypeLabel(doc.sectionTypeOffered);
+    if (doc.sectionTypeDesired) ret.sectionTypeDesiredLabel = getSectionTypeLabel(doc.sectionTypeDesired);
     return ret;
   }
 });
 ticketRequestSchema.set('toObject', {
   virtuals: true,
   transform: (doc, ret) => {
-    ret.sectionTypeLabel = getSectionTypeLabel(doc);
+    if (doc.sectionType) ret.sectionTypeLabel = getSectionTypeLabel(doc.sectionType);
+    if (doc.sectionTypeOffered) ret.sectionTypeOfferedLabel = getSectionTypeLabel(doc.sectionTypeOffered);
+    if (doc.sectionTypeDesired) ret.sectionTypeDesiredLabel = getSectionTypeLabel(doc.sectionTypeDesired);
     return ret;
   }
 });
@@ -230,7 +234,6 @@ const sellRequestSchema = new mongoose.Schema({
     type: String,
     uppercase: true,
     match: /^[A-T]$/
-    match: /^[A-T]$/
   },
 
   // Seat numbers for standard seating [1-20]
@@ -247,41 +250,63 @@ const sellRequestSchema = new mongoose.Schema({
    * Similar to SellRequest but without price - user wants to trade tickets for different games.
    */
 const tradeRequestSchema = new mongoose.Schema({
-  // User wants any game
-  anyGame: {
+  fullSeasonTrade: {
     type: Boolean,
     default: false
   },
 
-  // Games the user wants to trade for (required, at least one)
-  desiredGameIds: {
+  // Games the user is offering (required, at least one)
+  gamesOffered: {
     type: [mongoose.Schema.Types.ObjectId],
     ref: 'Game',
     required: function() {
-      return !this.anyGame
+      return !this.fullSeasonTrade
     },
     validate: {
       validator: function(v) {
-        if (this.anyGame) return true;
+        if (this.fullSeasonTrade) return true;
         return v && v.length > 0;
       },
-      message: 'At least one desired game is required when not trading for any game'
+      message: 'At least one offered game is required when not trading for full season'
+    }
+  },
+
+  // Games the user wants to trade for (required, at least one)
+  gamesDesired: {
+    type: [mongoose.Schema.Types.ObjectId],
+    ref: 'Game',
+    required: function() {
+      return !this.fullSeasonTrade
+    },
+    validate: {
+      validator: function(v) {
+        if (this.fullSeasonTrade) return true;
+        return v && v.length > 0;
+      },
+      message: 'At least one desired game is required when not trading for full season'
     }
   },
 
   // Flag for desiring any section
-  anySection: {
+  anySectionDesired: {
     type: Boolean,
     default: false
   },
   
+  // Offfered Section Type
+  sectionTypeOffered: {
+    type: String,
+    enum: ['supporters', 'standard', 'standing_room', 'deweys', 'highroller'],
+    required: true
+  },
+  
   // Desired Section Type
-  desiredSectionType: {
+  sectionTypeDesired: {
     type: String,
     enum: ['supporters', 'standard', 'standing_room', 'deweys', 'highroller'],
     required: function() {
       // Traders & Sellers always need a sectionType, Buyers only need sectionType if not selecting "any"
-      return !this.anySection;
+      return !this.anySectionDesired;
     }
   },
 
