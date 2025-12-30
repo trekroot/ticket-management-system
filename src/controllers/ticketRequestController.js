@@ -948,7 +948,7 @@ async function getOpenPairingsForTicketRequest(ticketId, includeAll = false) {
 /**
  * Get match status or potential pairings for a ticket
  *
- * If ticket is in an active match (pending/accepted), returns match details with full user info.
+ * If ticket is in an active match (pending/accepted/completed), returns match details with full user info.
  * Otherwise, returns potential pairings.
  *
  * GET /api/tickets/pairing/:ticketId
@@ -959,7 +959,7 @@ export async function getTicketPairingsOrMatch(req, res) {
     const includeAll = req.query.all === 'true';
     const ticketId = req.params.ticketId;
 
-    // Check if ticket is in an non-cancelled match (pending, accepted, completed)
+    // Check if ticket is in an non-cancelled match (initiated, accepted, completed)
     const activeMatch = await Match.findOne({
       $or: [
         { initiatorTicketId: ticketId },

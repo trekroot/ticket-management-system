@@ -47,7 +47,7 @@ export async function initiateMatch(req, res) {
 }
 
 /**
- * Accept a pending match
+ * Accept an initiated match
  * POST /api/matchmaker/:matchId/accept
  */
 export async function acceptMatch(req, res) {

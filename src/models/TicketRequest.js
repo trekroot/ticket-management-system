@@ -178,7 +178,7 @@ const buyRequestSchema = new mongoose.Schema({
     type: String,
     enum: ['supporters', 'standard', 'standing_room', 'deweys', 'highroller'],
     required: function() {
-      return !this.anySection;
+      return !this.anySectionDesired;
     }
   },
 });
