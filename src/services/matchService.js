@@ -1,7 +1,8 @@
 // import mongoose from 'mongoose'; //for transaction work/future impl
 import Match from '../models/Match.js';
-import { TicketRequest, BuyRequest, SellRequest } from '../models/TicketRequest.js';
+import { TicketRequest, BuyRequest, SellRequest, TradeRequest } from '../models/TicketRequest.js';
 import User from '../models/User.js';
+import { getNumTickets } from '../utils/ticketHelper.js';
 
 /**
  * Match Service
@@ -390,7 +391,7 @@ export async function getMatchInfoForTickets(ticketIds) {
  * @returns {Object} { success, match, createdTicket, error }
  */
 // TODO - add transation for mongoDB to ensure ALL OR NOTHING UPDATES
-export async function initiateDirectMatch(targetTicketId, userId) {
+export async function initiateDirectMatch(targetTicketId, userId, reason = '') {
   try {
     // Get the target ticket
     const targetTicket = await TicketRequest.findById(targetTicketId)
@@ -414,6 +415,7 @@ export async function initiateDirectMatch(targetTicketId, userId) {
 
     // Determine what type of ticket to create (opposite of target)
     const isSellRequest = targetTicket.__t === 'SellRequest';
+    const isTradeRequest = targetTicket.__t === 'TradeRequest';
     let createdTicket;
 
     if (isSellRequest) {
@@ -426,6 +428,7 @@ export async function initiateDirectMatch(targetTicketId, userId) {
         anySection: false,
         status: 'matched',
         isDirectMatch: true,
+        maxPrice: targetTicket.minPrice,
         userSnapshot: {
           discordHandle: user.discordHandle,
           username: user.username,
@@ -434,7 +437,7 @@ export async function initiateDirectMatch(targetTicketId, userId) {
         },
         notes: `Direct match with ticket ${targetTicketId}`
       });
-    } else {
+    } else if (!isTradeRequest) {
       // Target is buying, create a SellRequest for initiator
       // Note: This is less common - usually buyers don't have specific inventory
       // You may want to restrict this or handle differently
@@ -453,6 +456,27 @@ export async function initiateDirectMatch(targetTicketId, userId) {
         },
         notes: `Direct match with ticket ${targetTicketId}`
       });
+    } else {
+      // Trade request direct match
+      createdTicket = await TradeRequest.create({
+        userId,
+        gamesDesired: targetTicket.gamesOffered,
+        gamesOffered: targetTicket.gamesDesired,
+        fullSeasonTrade: targetTicket.fullSeasonTrade,
+        status: 'matched',
+        sectionTypeDesired: targetTicket.sectionTypeOffered,
+        anySectionDesired: targetTicket.anySectionDesired,
+        sectionTypeOffered: 'tbd',
+        isDirectMatch: true,
+        userSnapshot: {
+          discordHandle: user.discordHandle,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName
+        },
+        notes: `Direct match with ticket ${targetTicketId}. Notes: ${reason}`,
+        numTickets: getNumTickets(targetTicket)
+      });
     }
 
     // Create the match
@@ -463,7 +487,7 @@ export async function initiateDirectMatch(targetTicketId, userId) {
       history: [{
         status: 'initiated',
         changedBy: userId,
-        notes: 'Direct match initiated (ticket auto-created)'
+        notes: `Direct match initiated (ticket auto-created). Initiator Note: ${reason}`
       }]
     });
 

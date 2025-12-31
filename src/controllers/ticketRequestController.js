@@ -1,11 +1,11 @@
 import { TicketRequest, BuyRequest, SellRequest, TradeRequest } from '../models/TicketRequest.js';
 // Import models so Mongoose registers them for populate()
-import Game from '../models/Game.js';
 import { addOwnerFlag, hidePrivateData, seatsAreAdjacent } from '../utils/ticketHelper.js';
 import { SEATING_FORMATS, SECTION_GROUPS } from '../models/SeatingFormat.js';
 import Match from '../models/Match.js';
 import { logAdminAction } from '../services/adminAuditService.js';
 import { getMatchInfoForTickets } from '../services/matchService.js';
+import { getNumTickets } from '../utils/ticketHelper.js';
 
 /**
  * CONTROLLER: ticketRequestController
@@ -143,7 +143,7 @@ export const getRequestById = async (req, res) => {
  * Create a new buy request
  *
  * Body: {
- *   gameId, section, numTickets, ticketsTogether,
+ *   gameId, sectionTypeDesired, numTickets, ticketsTogether,
  *   notes, maxPrice, bandMember, firstTimeAttending, requestingFree, anySection
  * }
  * Note: userId comes from authenticated user (req.user), not request body
@@ -191,7 +191,7 @@ export const createBuyRequest = async (req, res) => {
  * Create a new sell request
  *
  * Body: {
- *   gameId, sectionType, section, row, seats, numTickets, ticketsTogether,
+ *   gameId, sectionTypeOffered, section, row, seats, numTickets, ticketsTogether,
  *   notes, minPrice, donatingFree
  * }
  * Note: userId comes from authenticated user (req.user), not request body
@@ -236,8 +236,8 @@ export const createSellRequest = async (req, res) => {
  * Create a new trade request
  *
  * Body: {
- *   anyGame, [desiredGameIds], sectionType, section, row, seats, numTickets,
- *   ticketsTogether, notes
+ *   [gamesOffered], [gamesDesired], sectionTypeOffered, sectionTypeDesired, anySectionDesired,
+ *   section, row, seats, numTickets, ticketsTogether, notes
  * }
  * Note: userId comes from authenticated user (req.user), not request body
  */
@@ -535,17 +535,9 @@ const adjacencyValue = 10;
 
 const maxScore = gameValue + sectionValue + priceValue + qtyValue + adjacencyValue;
 const maxScoreTrade = gameValue + sectionValue + qtyValue + adjacencyValue;
-const minMatchScore = maxScore * 0.5;
+let minMatchScore = maxScore * 0.5;
 
 // ========== Pairing Helper Functions ==========
-
-/**
- * Get number of tickets from an offer (works for seats array or numTickets)
- */
-function getNumTickets(ticket) {
-  if (ticket.seats?.length > 0) return ticket.seats.length;
-  return ticket.numTickets || 1;
-}
 
 /**
  * Trade helper: Check if a gameId exists in a games array (handles ObjectId comparison)
@@ -611,9 +603,10 @@ function calculateTradePairingScore(tradeA, tradeB) {
     (tradeA.gamesDesired || []).some(g => gamesOverlap(tradeB.gamesOffered, g));
   
   if (tradeA.fullSeasonTrade && tradeB.fullSeasonTrade) {
-    score += gameValue + 20;
-    reasons.push('Full season match: +60')
-    console.log(`  [Full Season] Full season match: return 40+20!`);
+    score += gameValue;
+    reasons.push('Full season match: +40')
+    console.log(`  [Full Season] Full season match: return 40!`);
+    minMatchScore = 35;
   } else if (!!tradeA.fullSeasonTrade != !!tradeB.fullSeasonTrade) {
     console.log(`  [Game] Full season mismatch: return 0`);
     return { score: 0, reasons: ['Only one user wants full season trade.']}
@@ -790,7 +783,6 @@ export function calculatePairingScore(saleTicket, requestTicket) {
     console.log(`  [Donation] mismatch, abort match attempt`);
     return { score, reasons }
     // TODO - find a way to reconcile if there are free tickets available, but no request for donated
-    console.log(`  [Price] Seller donating: -100`);
   } else if (requestTicket.maxPrice !== undefined && saleTicket.minPrice !== undefined) {
     if (saleTicket.minPrice <= requestTicket.maxPrice) {
       score += priceValue;
@@ -971,18 +963,18 @@ export async function getTicketPairingsOrMatch(req, res) {
         path: 'initiatorTicketId',
         populate: [
           { path: 'userId', select: 'username discordHandle email firstName lastName' },
-          { path: 'gameId', select: 'opponent date venue' },
-          { path: 'gamesOffered', select: 'opponent date venue' },
-          { path: 'gamesDesired', select: 'opponent date venue' }
+          { path: 'gameId', select: 'opponent date venue tbdTime' },
+          { path: 'gamesOffered', select: 'opponent date venue tbdTime' },
+          { path: 'gamesDesired', select: 'opponent date venue tbdTime' }
         ]
       })
       .populate({
         path: 'matchedTicketId',
         populate: [
           { path: 'userId', select: 'username discordHandle email firstName lastName' },
-          { path: 'gameId', select: 'opponent date venue' },
-          { path: 'gamesOffered', select: 'opponent date venue' },
-          { path: 'gamesDesired', select: 'opponent date venue' }
+          { path: 'gameId', select: 'opponent date venue tbdTime' },
+          { path: 'gamesOffered', select: 'opponent date venue tbdTime' },
+          { path: 'gamesDesired', select: 'opponent date venue tbdTime' }
         ]
       });
 

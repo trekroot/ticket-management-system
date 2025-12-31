@@ -233,8 +233,9 @@ export async function initiateDirectMatch(req, res) {
   try {
     const { targetTicketId } = req.params;
     const userId = req.user._id;
+    const { reason } = req.body.reason;
 
-    const result = await matchService.initiateDirectMatch(targetTicketId, userId);
+    const result = await matchService.initiateDirectMatch(targetTicketId, userId, reason);
 
     if (!result.success) {
       return res.status(400).json({ success: false, error: result.error });
