@@ -168,7 +168,7 @@ const buyRequestSchema = new mongoose.Schema({
   },
 
   // Flag for desiring any section
-  anySection: {
+  anySectionDesired: {
     type: Boolean,
     default: false
   },
@@ -176,7 +176,7 @@ const buyRequestSchema = new mongoose.Schema({
   // Stadium section type - used for matching
   sectionTypeDesired: {
     type: String,
-    enum: ['supporters', 'standard', 'standing_room', 'deweys', 'highroller', 'tbd'],
+    enum: ['supporters', 'standard', 'standing_room', 'deweys', 'highroller', 'See Notes'],
     required: function() {
       return !this.anySectionDesired;
     }
@@ -214,7 +214,7 @@ const sellRequestSchema = new mongoose.Schema({
   // Stadium section type - used for matching
   sectionTypeOffered: {
     type: String,
-    enum: ['supporters', 'standard', 'standing_room', 'deweys', 'highroller', 'tbd'],
+    enum: ['supporters', 'standard', 'standing_room', 'deweys', 'highroller', 'See Notes'],
     required: true
   },
 
@@ -296,14 +296,14 @@ const tradeRequestSchema = new mongoose.Schema({
   // Offfered Section Type
   sectionTypeOffered: {
     type: String,
-    enum: ['supporters', 'standard', 'standing_room', 'deweys', 'highroller', 'tbd'],
+    enum: ['supporters', 'standard', 'standing_room', 'deweys', 'highroller', 'See Notes'],
     required: true
   },
   
   // Desired Section Type
   sectionTypeDesired: {
     type: String,
-    enum: ['supporters', 'standard', 'standing_room', 'deweys', 'highroller', 'tbd'],
+    enum: ['supporters', 'standard', 'standing_room', 'deweys', 'highroller', 'See Notes'],
     required: function() {
       // Traders & Sellers always need a sectionType, Buyers only need sectionType if not selecting "any"
       return !this.anySectionDesired;

@@ -96,7 +96,7 @@ export async function cancelMatch(req, res) {
   try {
     const { matchId } = req.params;
     const userId = req.user._id;
-    const reason = req.body;
+    const reason = req.body.reason;
 
     const result = await matchService.cancelMatch(matchId, userId, reason);
 

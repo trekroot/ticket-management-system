@@ -2,7 +2,6 @@
 import Match from '../models/Match.js';
 import { TicketRequest, BuyRequest, SellRequest, TradeRequest } from '../models/TicketRequest.js';
 import User from '../models/User.js';
-import { getNumTickets } from '../utils/ticketHelper.js';
 
 /**
  * Match Service
@@ -435,7 +434,7 @@ export async function initiateDirectMatch(targetTicketId, userId, reason = '') {
           firstName: user.firstName,
           lastName: user.lastName
         },
-        notes: `Direct match with ticket ${targetTicketId}`
+        notes: `Buy initiated from seller listing. Notes: ${reason}`
       });
     } else if (!isTradeRequest) {
       // Target is buying, create a SellRequest for initiator
@@ -444,7 +443,7 @@ export async function initiateDirectMatch(targetTicketId, userId, reason = '') {
       createdTicket = await SellRequest.create({
         userId,
         gameId: targetTicket.gameId._id,
-        sectionTypeOffered: targetTicket.sectionTypeDesired || 'standard',
+        sectionTypeOffered: targetTicket.sectionTypeDesired,
         numTickets: targetTicket.numTickets || 1,
         status: 'matched',
         isDirectMatch: true,
@@ -454,7 +453,7 @@ export async function initiateDirectMatch(targetTicketId, userId, reason = '') {
           firstName: user.firstName,
           lastName: user.lastName
         },
-        notes: `Direct match with ticket ${targetTicketId}`
+        notes: `Sell initiated from buy listing.  Notes: ${reason}`
       });
     } else {
       // Trade request direct match
@@ -464,9 +463,8 @@ export async function initiateDirectMatch(targetTicketId, userId, reason = '') {
         gamesOffered: targetTicket.gamesDesired,
         fullSeasonTrade: targetTicket.fullSeasonTrade,
         status: 'matched',
+        sectionTypeOffered: 'See Notes',
         sectionTypeDesired: targetTicket.sectionTypeOffered,
-        anySectionDesired: targetTicket.anySectionDesired,
-        sectionTypeOffered: 'tbd',
         isDirectMatch: true,
         userSnapshot: {
           discordHandle: user.discordHandle,
@@ -474,8 +472,7 @@ export async function initiateDirectMatch(targetTicketId, userId, reason = '') {
           firstName: user.firstName,
           lastName: user.lastName
         },
-        notes: `Direct match with ticket ${targetTicketId}. Notes: ${reason}`,
-        numTickets: getNumTickets(targetTicket)
+        notes: `Trade initiated from listing. Notes: ${reason}`
       });
     }
 

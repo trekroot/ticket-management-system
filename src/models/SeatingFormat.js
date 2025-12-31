@@ -55,10 +55,6 @@ export const SECTION_GROUPS = {
   standing_room: {
     label: 'Standing Room',
     sections: ['General Admission']
-  },
-  tbd: {
-    label: 'See Notes',
-    sections: []
   }
 };
 
