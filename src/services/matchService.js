@@ -424,7 +424,7 @@ export async function initiateDirectMatch(targetTicketId, userId, reason = '') {
         gameId: targetTicket.gameId._id,
         sectionTypeDesired: targetTicket.sectionTypeOffered,
         numTickets: targetTicket.numTickets || targetTicket.seats?.length || 1,
-        anySection: false,
+        anySectionDesired: false,
         status: 'matched',
         isDirectMatch: true,
         maxPrice: targetTicket.minPrice,
@@ -443,7 +443,7 @@ export async function initiateDirectMatch(targetTicketId, userId, reason = '') {
       createdTicket = await SellRequest.create({
         userId,
         gameId: targetTicket.gameId._id,
-        sectionTypeOffered: targetTicket.sectionTypeDesired,
+        sectionTypeOffered: targetTicket.sectionTypeDesired || 'See Notes',
         numTickets: targetTicket.numTickets || 1,
         status: 'matched',
         isDirectMatch: true,
@@ -453,7 +453,7 @@ export async function initiateDirectMatch(targetTicketId, userId, reason = '') {
           firstName: user.firstName,
           lastName: user.lastName
         },
-        notes: `Sell initiated from buy listing.  Notes: ${reason}`
+        notes: `Sell initiated from buy listing. Notes: ${reason}`
       });
     } else {
       // Trade request direct match

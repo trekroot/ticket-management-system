@@ -144,7 +144,7 @@ export const getRequestById = async (req, res) => {
  *
  * Body: {
  *   gameId, sectionTypeDesired, numTickets, ticketsTogether,
- *   notes, maxPrice, bandMember, firstTimeAttending, requestingFree, anySection
+ *   notes, maxPrice, bandMember, firstTimeAttending, requestingFree, anySectionDesired
  * }
  * Note: userId comes from authenticated user (req.user), not request body
  */
@@ -535,7 +535,7 @@ const adjacencyValue = 10;
 
 const maxScore = gameValue + sectionValue + priceValue + qtyValue + adjacencyValue;
 const maxScoreTrade = gameValue + sectionValue + qtyValue + adjacencyValue;
-let minMatchScore = maxScore * 0.5;
+const minMatchScore = maxScore * 0.5;
 
 // ========== Pairing Helper Functions ==========
 
@@ -560,10 +560,10 @@ function quantityScore(ticketA, ticketB) {
   const ticketBQty = getNumTickets(ticketB);
   if (ticketAQty === ticketBQty) {
     console.log(`  [Quantity] Exact match: +15`);
-    return { qtyScore: qtyValue, qtyReason: 'Exact quantity match: +15' }
+    return { qtyScore: qtyValue, qtyReason: 'Exact quantity match (+15)' }
   } else if (Math.abs(ticketAQty - ticketBQty) <= 1) {
     console.log(`  [Quantity] Close ${ticketAQty} vs ${ticketBQty}: +5`);
-    return { qtyScore: qtyValue * 1/3, qtyReason: `Close quantity: ${ticketAQty} vs ${ticketBQty}: +5` }
+    return { qtyScore: qtyValue * 1/3, qtyReason: `Close quantity: ${ticketAQty} vs ${ticketBQty} (+5)` }
   } else {
     console.log(`  [Quantity] Mismatch ${ticketAQty} vs ${ticketBQty}: +0`);
     return { qtyScore: 0, qtyReason: `Quantity mismatch: ${ticketAQty} vs ${ticketBQty} (+0)`}
@@ -575,15 +575,15 @@ function quantityScore(ticketA, ticketB) {
  * Both sides need to match: A offers what B wants AND B offers what A wants
  */
 function tradeSectionTypeScore(tradeA, tradeB) {
-  const aOffersWhatBWants = tradeA.sectionTypeOffered === tradeB.sectionTypeDesired || tradeB.anySection;
-  const bOffersWhatAWants = tradeB.sectionTypeOffered === tradeA.sectionTypeDesired || tradeA.anySection;
+  const aOffersWhatBWants = tradeA.sectionTypeOffered === tradeB.sectionTypeDesired || tradeB.anySectionDesired;
+  const bOffersWhatAWants = tradeB.sectionTypeOffered === tradeA.sectionTypeDesired || tradeA.anySectionDesired;
 
   if (aOffersWhatBWants && bOffersWhatAWants) {
-    return { sectionScore: sectionValue, sectionReasons: 'Exact section match: +20' };
+    return { sectionScore: sectionValue, sectionReasons: 'Exact section match (+20)' };
   } else if (aOffersWhatBWants || bOffersWhatAWants) {
-    return { sectionScore: sectionValue / 2, sectionReasons: 'One section type matches: +10)' };
+    return { sectionScore: sectionValue / 2, sectionReasons: 'One section type matches (+10)' };
   } else {
-    return { sectionScore: 0, sectionReasons: 'Section mismatch: +0' };
+    return { sectionScore: 0, sectionReasons: 'Section mismatch (+0)' };
   }
 }
 
@@ -604,20 +604,19 @@ function calculateTradePairingScore(tradeA, tradeB) {
   
   if (tradeA.fullSeasonTrade && tradeB.fullSeasonTrade) {
     score += gameValue;
-    reasons.push('Full season match: +40')
-    console.log(`  [Full Season] Full season match: return 40!`);
-    minMatchScore = 35;
+    reasons.push('Full season match (+40)')
+    console.log(`  [Full Season] Full season match! 40`);
   } else if (!!tradeA.fullSeasonTrade != !!tradeB.fullSeasonTrade) {
     console.log(`  [Game] Full season mismatch: return 0`);
     return { score: 0, reasons: ['Only one user wants full season trade.']}
   } else if (JSON.stringify(tradeA.gamesDesired) === JSON.stringify(tradeB.gamesOffered)
              && JSON.stringify(tradeA.gamesOffered) == JSON.stringify(tradeB.gamesDesired)) {
     score += gameValue;
-    reasons.push('Trades have exact match game(s) +40');
+    reasons.push('Trades have exact match game(s) (+40)');
     console.log(`  [Game] Full match: +40`);
   } else if (aOffersWhatBWants && bOffersWhatAWants) {
     score += gameValue * .5;
-    reasons.push('Trades have complementary games +20');
+    reasons.push('Trades have complementary games (+20)');
     console.log(`  [Game] Full match: +20`);
   } else if (aOffersWhatBWants || bOffersWhatAWants) {
     score += gameValue * .25;
@@ -752,7 +751,7 @@ export function calculatePairingScore(saleTicket, requestTicket) {
     score += sectionValue;
     reasons.push(`Exact section match (+20)`);
     console.log(`  [Section] Exact match: +20`);
-  } else if (requestTicket.anySection) {
+  } else if (requestTicket.anySectionDesired) {
     score += sectionValue / 2;
     reasons.push(`Buyer accepts any section (+10)`);
     console.log(`  [Section] Any section accepted: +10`);
@@ -985,12 +984,21 @@ export async function getTicketPairingsOrMatch(req, res) {
       const userTicket = isInitiator ? activeMatch.initiatorTicketId : activeMatch.matchedTicketId;
       const counterpartyTicket = isInitiator ? activeMatch.matchedTicketId : activeMatch.initiatorTicketId;
 
+      // Convert to plain objects so we can modify properties
+      const userTicketObj = userTicket.toObject();
+      const counterpartyTicketObj = counterpartyTicket.toObject();
+
+      // Have seller price set the market, intent to keep tickets accessible!
+      if (counterpartyTicket.__t === 'BuyRequest' && counterpartyTicket.maxPrice > userTicket.minPrice) {
+        counterpartyTicketObj.maxPrice = userTicket.minPrice;
+      }
+
       return res.json({
         success: true,
         hasActiveMatch: true,
         match: activeMatch,
-        userTicket: userTicket.toObject(),
-        counterpartyTicket: counterpartyTicket.toObject(),
+        userTicket: userTicketObj,
+        counterpartyTicket: counterpartyTicketObj,
         counterpartyUser: counterpartyTicket.userId
       });
     }

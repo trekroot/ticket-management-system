@@ -68,7 +68,7 @@ async function seedTickets() {
         bandMember: false,
         firstTimeAttending: true,
         requestingFree: false,
-        anySection: false,
+        anySectionDesired: false,
         notes: 'First game, excited to be in the supporters section!',
         status: 'open'
       },
@@ -84,7 +84,7 @@ async function seedTickets() {
         bandMember: false,
         firstTimeAttending: false,
         requestingFree: false,
-        anySection: true,
+        anySectionDesired: true,
         notes: 'Just me!',
         status: 'open'
       },
@@ -100,7 +100,7 @@ async function seedTickets() {
         bandMember: true,
         firstTimeAttending: false,
         requestingFree: false,
-        anySection: true,
+        anySectionDesired: true,
         notes: 'Band member looking for a ticket',
         status: 'open'
       },
@@ -116,7 +116,7 @@ async function seedTickets() {
         bandMember: false,
         firstTimeAttending: true,
         requestingFree: true,
-        anySection: false,
+        anySectionDesired: false,
         notes: 'Looking for donated tickets to any upcoming game',
         status: 'open'
       }

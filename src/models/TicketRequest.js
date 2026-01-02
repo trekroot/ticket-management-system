@@ -27,16 +27,6 @@ const ticketRequestSchema = new mongoose.Schema({
     ref: 'Game',
     required: false
   },
-  
-  // // MIGRATED TO sectionTypeOffered & sectionTypeDesired Stadium section type - used for matching
-  // sectionType: {
-  //   type: String,
-  //   enum: ['supporters', 'standard', 'standing_room', 'deweys', 'highroller'],
-  //   required: function() {
-  //     // Sellers always need a sectionType, Buyers only need sectionType if not selecting "any"
-  //     return (this.__t === 'SellRequest' || !this.anySection) && this.__t !== 'TradeRequest';
-  //   }
-  // },
 
   // How many tickets
   numTickets: {
@@ -293,7 +283,7 @@ const tradeRequestSchema = new mongoose.Schema({
     default: false
   },
   
-  // Offfered Section Type
+  // Offered Section Type
   sectionTypeOffered: {
     type: String,
     enum: ['supporters', 'standard', 'standing_room', 'deweys', 'highroller', 'See Notes'],
