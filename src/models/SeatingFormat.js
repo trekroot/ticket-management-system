@@ -63,8 +63,7 @@ export const SECTION_GROUPS = {
  * @param {Object} ticket
  * @returns {string} human-readable label
  */
-export function getSectionTypeLabel(ticket) {
-  const sectionType = ticket.effectiveSectionType;
+export function getSectionTypeLabel(sectionType) {
   return SECTION_GROUPS[sectionType]?.label || sectionType;
 }
 
@@ -110,7 +109,7 @@ export function getSectionTypeFromSection(section) {
  * @returns {object|null} format config or null
  */
 export function getSeatingFormatFromTicket(ticket) {
-  const sectionType = ticket.sectionTypeDesired || ticket.sectionTypeOffered;
+  const sectionType = ticket.sectionTypeOffered || ticket.sectionTypeDesired;
   switch (sectionType) {
     case 'supporters':
       // 118 uses standard format, 119-120 use GA
@@ -137,55 +136,6 @@ export function isGeneralAdmission(section) {
   if (section === 'standing_room') return true;
   const num = Number(section);
   return num === 119 || num === 120;
-}
-
-/**
- * TODO: IS THIS EVEN IN USE
- * Validate seat details for a given section
- * @param {object} params - { section, row, seat, ticketNumber }
- * @returns {{ valid: boolean, error?: string }}
-
- */
-export function validateSeatDetails({ section, row, seat, ticketNumber }) {
-  const sectionType = getSectionTypeFromSection(section);
-
-  if (!sectionType) {
-    return { valid: false, error: `Invalid section: ${section}` };
-  }
-
-  // GA sections don't need seat details
-  if (isGeneralAdmission(section)) {
-    return { valid: true };
-  }
-
-  // Standard seating (100-118)
-  if (sectionType === 'standard' || (sectionType === 'supporters' && section === 118)) {
-    if (!row || !SEATING_FORMATS.standard.rows.includes(row.toUpperCase())) {
-      return { valid: false, error: `Invalid row: ${row}. Must be A-Z` };
-    }
-    if (!seat || seat < 1 || seat > 20) {
-      return { valid: false, error: `Invalid seat: ${seat}. Must be 1-20` };
-    }
-    return { valid: true };
-  }
-
-  // Deweys
-  if (sectionType === 'deweys') {
-    if (!ticketNumber || ticketNumber < 1 || ticketNumber > 50) {
-      return { valid: false, error: `Invalid ticket number: ${ticketNumber}. Must be 1-50` };
-    }
-    return { valid: true };
-  }
-
-  // Highroller
-  if (sectionType === 'highroller') {
-    if (!ticketNumber || ticketNumber < 1 || ticketNumber > 20) {
-      return { valid: false, error: `Invalid ticket number: ${ticketNumber}. Must be 1-20` };
-    }
-    return { valid: true };
-  }
-
-  return { valid: true };
 }
 
 /**

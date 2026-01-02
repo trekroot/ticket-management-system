@@ -50,7 +50,7 @@ const matchSchema = new mongoose.Schema({
     notes: String
   }],
 
-  // Optional: expiration for pending matches //TODO, after seeing movement
+  // Optional: expiration for initiated matches //TODO, after seeing movement
   expiresAt: {
     type: Date
   }

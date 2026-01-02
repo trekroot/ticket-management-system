@@ -1,6 +1,6 @@
 // import mongoose from 'mongoose'; //for transaction work/future impl
 import Match from '../models/Match.js';
-import { TicketRequest, BuyRequest, SellRequest } from '../models/TicketRequest.js';
+import { TicketRequest, BuyRequest, SellRequest, TradeRequest } from '../models/TicketRequest.js';
 import User from '../models/User.js';
 
 /**
@@ -280,14 +280,18 @@ export async function getMatchesForUser(userId, status = null) {
         path: 'initiatorTicketId',
         populate: [
           { path: 'userId', select: 'username discordHandle email firstName lastName' },
-          { path: 'gameId', select: 'opponent date venue' }
+          { path: 'gameId', select: 'opponent date venue' },
+          { path: 'gamesOffered', select: 'opponent date venue' },
+          { path: 'gamesDesired', select: 'opponent date venue' }
         ]
       })
       .populate({
         path: 'matchedTicketId',
         populate: [
           { path: 'userId', select: 'username discordHandle email firstName lastName' },
-          { path: 'gameId', select: 'opponent date venue' }
+          { path: 'gameId', select: 'opponent date venue' },
+          { path: 'gamesOffered', select: 'opponent date venue' },
+          { path: 'gamesDesired', select: 'opponent date venue' }
         ]
       })
       .sort({ updatedAt: -1 });
@@ -317,14 +321,18 @@ export async function getAllMatches(status = null) {
         path: 'initiatorTicketId',
         populate: [
           { path: 'userId', select: 'username discordHandle email firstName lastName' },
-          { path: 'gameId', select: 'opponent date venue' }
+          { path: 'gameId', select: 'opponent date venue' },
+          { path: 'gamesOffered', select: 'opponent date venue' },
+          { path: 'gamesDesired', select: 'opponent date venue' }
         ]
       })
       .populate({
         path: 'matchedTicketId',
         populate: [
           { path: 'userId', select: 'username discordHandle email firstName lastName' },
-          { path: 'gameId', select: 'opponent date venue' }
+          { path: 'gameId', select: 'opponent date venue' },
+          { path: 'gamesOffered', select: 'opponent date venue' },
+          { path: 'gamesDesired', select: 'opponent date venue' }
         ]
       })
       .sort({ updatedAt: -1 });
@@ -382,10 +390,11 @@ export async function getMatchInfoForTickets(ticketIds) {
  * @returns {Object} { success, match, createdTicket, error }
  */
 // TODO - add transation for mongoDB to ensure ALL OR NOTHING UPDATES
-export async function initiateDirectMatch(targetTicketId, userId) {
+export async function initiateDirectMatch(targetTicketId, userId, reason = '') {
   try {
     // Get the target ticket
-    const targetTicket = await TicketRequest.findById(targetTicketId).populate('gameId');
+    const targetTicket = await TicketRequest.findById(targetTicketId)
+      .populate('gameId').populate('gamesOffered').populate('gamesDesired');
 
     if (!targetTicket) {
       return { success: false, error: 'Target ticket not found' };
@@ -405,6 +414,7 @@ export async function initiateDirectMatch(targetTicketId, userId) {
 
     // Determine what type of ticket to create (opposite of target)
     const isSellRequest = targetTicket.__t === 'SellRequest';
+    const isTradeRequest = targetTicket.__t === 'TradeRequest';
     let createdTicket;
 
     if (isSellRequest) {
@@ -414,25 +424,26 @@ export async function initiateDirectMatch(targetTicketId, userId) {
         gameId: targetTicket.gameId._id,
         sectionTypeDesired: targetTicket.sectionTypeOffered,
         numTickets: targetTicket.numTickets || targetTicket.seats?.length || 1,
-        anySection: false,
+        anySectionDesired: false,
         status: 'matched',
         isDirectMatch: true,
+        maxPrice: targetTicket.minPrice,
         userSnapshot: {
           discordHandle: user.discordHandle,
           username: user.username,
           firstName: user.firstName,
           lastName: user.lastName
         },
-        notes: `Direct match with ticket ${targetTicketId}`
+        notes: `Buy initiated from seller listing. Notes: ${reason}`
       });
-    } else {
+    } else if (!isTradeRequest) {
       // Target is buying, create a SellRequest for initiator
       // Note: This is less common - usually buyers don't have specific inventory
       // You may want to restrict this or handle differently
       createdTicket = await SellRequest.create({
         userId,
         gameId: targetTicket.gameId._id,
-        sectionTypeOffered: targetTicket.sectionTypeDesired || 'standard',
+        sectionTypeOffered: targetTicket.sectionTypeDesired || 'See Notes',
         numTickets: targetTicket.numTickets || 1,
         status: 'matched',
         isDirectMatch: true,
@@ -442,7 +453,26 @@ export async function initiateDirectMatch(targetTicketId, userId) {
           firstName: user.firstName,
           lastName: user.lastName
         },
-        notes: `Direct match with ticket ${targetTicketId}`
+        notes: `Sell initiated from buy listing. Notes: ${reason}`
+      });
+    } else {
+      // Trade request direct match
+      createdTicket = await TradeRequest.create({
+        userId,
+        gamesDesired: targetTicket.gamesOffered,
+        gamesOffered: targetTicket.gamesDesired,
+        fullSeasonTrade: targetTicket.fullSeasonTrade,
+        status: 'matched',
+        sectionTypeOffered: 'See Notes',
+        sectionTypeDesired: targetTicket.sectionTypeOffered,
+        isDirectMatch: true,
+        userSnapshot: {
+          discordHandle: user.discordHandle,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName
+        },
+        notes: `Trade initiated from listing. Notes: ${reason}`
       });
     }
 
@@ -454,7 +484,7 @@ export async function initiateDirectMatch(targetTicketId, userId) {
       history: [{
         status: 'initiated',
         changedBy: userId,
-        notes: 'Direct match initiated (ticket auto-created)'
+        notes: `Direct match initiated (ticket auto-created). Initiator Note: ${reason}`
       }]
     });
 

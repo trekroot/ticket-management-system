@@ -65,7 +65,7 @@ ticket-management-system/
   | Action      | Ticket A  | Ticket B  | Match     |
   |-------------|-----------|-----------|-----------|
   | Start       | open      | open      | —         |
-  | A initiates | pending   | pending   | initiated |
+  | A initiates | matched   | matched   | initiated |
   | B accepts   | matched   | matched   | accepted  |
   | Complete    | completed | completed | completed |
 

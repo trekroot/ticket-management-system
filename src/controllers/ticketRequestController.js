@@ -1,11 +1,11 @@
 import { TicketRequest, BuyRequest, SellRequest, TradeRequest } from '../models/TicketRequest.js';
 // Import models so Mongoose registers them for populate()
-import Game from '../models/Game.js';
-import { addOwnerFlag, hidePrivateData } from '../utils/ticketHelper.js';
+import { addOwnerFlag, hidePrivateData, seatsAreAdjacent } from '../utils/ticketHelper.js';
 import { SEATING_FORMATS, SECTION_GROUPS } from '../models/SeatingFormat.js';
 import Match from '../models/Match.js';
 import { logAdminAction } from '../services/adminAuditService.js';
 import { getMatchInfoForTickets } from '../services/matchService.js';
+import { getNumTickets } from '../utils/ticketHelper.js';
 
 /**
  * CONTROLLER: ticketRequestController
@@ -60,21 +60,31 @@ export const getAllRequests = async (req, res) => {
 
     // Build filter object from query params
     const filter = {};
-    // if (gameId) filter.gameId = gameId;
     if (status) filter.status = status;
 
     // Add to filter
-    // Find upcoming games
-    const nearbyGames = await Game.find({
-      date: { $gte: new Date()}
-    });
-    const futureGameIds = nearbyGames.map(g => g._id);
-    filter.gameId = { $in: futureGameIds };
+    // Find upcoming games TODO IF DESIRED IN FUTURE to fuzzy match games
+    // if (type !== 'trade') {
+    //   const nearbyGames = await Game.find({
+    //     date: { $gte: new Date()}
+    //   });
+    //   const futureGameIds = nearbyGames.map(g => g._id);
+    //   filter.gameId = { $in: futureGameIds };
+    // }
 
-    const ticketRequests = await Model.find(filter)
+    let query = Model.find(filter)
       .populate('userId', 'discordHandle username firstName lastName email')  // Get user details
-      .populate('gameId', 'opponent date venue tbdTime matchType')            // Get game details
-      .sort({ createdAt: -1 });                                 // Newest first
+      .sort({ createdAt: -1 });                                               // Newest first
+
+    if (type === 'trade') {
+      query
+        .populate('gamesOffered', 'opponent date venue tbdTime matchType')      // Get trade offered game details
+        .populate('gamesDesired', 'opponent date venue tbdTime matchType')      // Get trade desired game details
+    } else {
+      query.populate('gameId', 'opponent date venue tbdTime matchType')         // Get buy/sell game details
+    }
+
+    const ticketRequests = await query;
 
     const userId = req.user?._id;
 
@@ -103,7 +113,9 @@ export const getRequestById = async (req, res) => {
   try {
     const ticketRequest = await TicketRequest.findById(req.params.id)
       .populate('userId', 'discordHandle username firstName lastName email')
-      .populate('gameId', 'opponent date venue tbdTime matchType');
+      .populate('gameId', 'opponent date venue tbdTime matchType')
+      .populate('gamesOffered', 'opponent date venue tbdTime matchType')
+      .populate('gamesDesired', 'opponent date venue tbdTime matchType');
 
     if (!ticketRequest) {
       return res.status(404).json({
@@ -131,8 +143,8 @@ export const getRequestById = async (req, res) => {
  * Create a new buy request
  *
  * Body: {
- *   gameId, section, numTickets, ticketsTogether,
- *   notes, maxPrice, bandMember, firstTimeAttending, requestingFree, anySection
+ *   gameId, sectionTypeDesired, numTickets, ticketsTogether,
+ *   notes, maxPrice, bandMember, firstTimeAttending, requestingFree, anySectionDesired
  * }
  * Note: userId comes from authenticated user (req.user), not request body
  */
@@ -179,7 +191,7 @@ export const createBuyRequest = async (req, res) => {
  * Create a new sell request
  *
  * Body: {
- *   gameId, sectionType, section, row, seats, numTickets, ticketsTogether,
+ *   gameId, sectionTypeOffered, section, row, seats, numTickets, ticketsTogether,
  *   notes, minPrice, donatingFree
  * }
  * Note: userId comes from authenticated user (req.user), not request body
@@ -224,8 +236,8 @@ export const createSellRequest = async (req, res) => {
  * Create a new trade request
  *
  * Body: {
- *   anyGame, [desiredGameIds], sectionType, section, row, seats, numTickets,
- *   ticketsTogether, notes
+ *   [gamesOffered], [gamesDesired], sectionTypeOffered, sectionTypeDesired, anySectionDesired,
+ *   section, row, seats, numTickets, ticketsTogether, notes
  * }
  * Note: userId comes from authenticated user (req.user), not request body
  */
@@ -243,7 +255,8 @@ export const createTradeRequest = async (req, res) => {
     });
 
     await tradeRequest.populate('userId', 'username firstName lastName');
-    await tradeRequest.populate('gameId', 'opponent date venue tbdTime');
+    await tradeRequest.populate('gamesOffered', 'opponent date venue tbdTime');
+    await tradeRequest.populate('gamesDesired', 'opponent date venue tbdTime');
 
     res.status(201).json({
       success: true,
@@ -303,7 +316,9 @@ export const updateRequest = async (req, res) => {
       { new: true, runValidators: true }
     )
       .populate('userId', 'discordHandle username firstName lastName email')
-      .populate('gameId', 'opponent date venue tbdTime matchType');
+      .populate('gameId', 'opponent date venue tbdTime matchType')
+      .populate('gamesDesired', 'opponent date venue tbdTime matchType')
+      .populate('gamesOffered', 'opponent date venue tbdTime matchType');
 
     if (!request) {
       return res.status(404).json({
@@ -427,6 +442,8 @@ export const getRequestsByGame = async (req, res) => {
     const requests = await Model.find({ gameId })
       .populate('userId', 'discordHandle username firstName lastName')
       .populate('gameId', 'opponent date venue tbdTime matchType')
+      .populate('gamesDesired', 'opponent date venue tbdTime matchType')
+      .populate('gamesOffered', 'opponent date venue tbdTime matchType')
       .sort({ createdAt: -1 });
 
     res.json({
@@ -474,6 +491,8 @@ export const getRequestsByUser = async (req, res) => {
 
     const ticketRequests = await Model.find(filter)
       .populate('gameId', 'opponent date venue tbdTime matchType')
+      .populate('gamesDesired', 'opponent date venue tbdTime matchType')
+      .populate('gamesOffered', 'opponent date venue tbdTime matchType')
       .sort({ createdAt: -1 });
 
     // Get match info for user's tickets (lightweight query using .lean())
@@ -508,14 +527,173 @@ export const getRequestsByUser = async (req, res) => {
 
 // Functions for /tickets/pairing API
 
-const gameValue = 30;
-const seatValue = 20;
-const priceValue = 20;
-const qtyValue = 20;
+const gameValue = 40;
+const sectionValue = 20;
+const priceValue = 15;
+const qtyValue = 15;
 const adjacencyValue = 10;
 
-const maxScore = gameValue + seatValue + priceValue + qtyValue + adjacencyValue;
-const minMatchScore = maxScore * 0.6;
+const maxScore = gameValue + sectionValue + priceValue + qtyValue + adjacencyValue;
+const maxScoreTrade = gameValue + sectionValue + qtyValue + adjacencyValue;
+const minMatchScore = maxScore * 0.5;
+
+// ========== Pairing Helper Functions ==========
+
+/**
+ * Trade helper: Check if a gameId exists in a games array (handles ObjectId comparison)
+ */
+function gamesOverlap(gamesArray, targetGameId) {
+  if (!gamesArray || !targetGameId) return false;
+  const targetStr = targetGameId._id ? targetGameId._id.toString() : targetGameId.toString();
+  return gamesArray.some(g => {
+    const gId = g._id ? g._id.toString() : g.toString();
+    return gId === targetStr;
+  });
+}
+
+/**
+ * Calculate quantity score for trade pairing
+ * Exact match, near match, else
+ */
+function quantityScore(ticketA, ticketB) {
+  const ticketAQty = getNumTickets(ticketA);
+  const ticketBQty = getNumTickets(ticketB);
+  if (ticketAQty === ticketBQty) {
+    console.log(`  [Quantity] Exact match: +15`);
+    return { qtyScore: qtyValue, qtyReason: 'Exact quantity match (+15)' }
+  } else if (Math.abs(ticketAQty - ticketBQty) <= 1) {
+    console.log(`  [Quantity] Close ${ticketAQty} vs ${ticketBQty}: +5`);
+    return { qtyScore: qtyValue * 1/3, qtyReason: `Close quantity: ${ticketAQty} vs ${ticketBQty} (+5)` }
+  } else {
+    console.log(`  [Quantity] Mismatch ${ticketAQty} vs ${ticketBQty}: +0`);
+    return { qtyScore: 0, qtyReason: `Quantity mismatch: ${ticketAQty} vs ${ticketBQty} (+0)`}
+  }
+}
+
+/**
+ * Calculate section type score for trade pairing
+ * Both sides need to match: A offers what B wants AND B offers what A wants
+ */
+function tradeSectionTypeScore(tradeA, tradeB) {
+  const aOffersWhatBWants = tradeA.sectionTypeOffered === tradeB.sectionTypeDesired || tradeB.anySectionDesired;
+  const bOffersWhatAWants = tradeB.sectionTypeOffered === tradeA.sectionTypeDesired || tradeA.anySectionDesired;
+
+  if (aOffersWhatBWants && bOffersWhatAWants) {
+    return { sectionScore: sectionValue, sectionReasons: 'Exact section match (+20)' };
+  } else if (aOffersWhatBWants || bOffersWhatAWants) {
+    return { sectionScore: sectionValue / 2, sectionReasons: 'One section type matches (+10)' };
+  } else {
+    return { sectionScore: 0, sectionReasons: 'Section mismatch (+0)' };
+  }
+}
+
+/**
+ * Calculate pairing score between two Trade Requests
+ */
+function calculateTradePairingScore(tradeA, tradeB) {
+  let score = 0;
+  const reasons = [];
+
+  console.log(`[Trade Pairing] Calculating score: Trade ${tradeA._id} vs Trade ${tradeB._id}`);
+
+  // A. Game Match - Both trades need complementary games
+  const aOffersWhatBWants = tradeB.anyGame || gamesOverlap(tradeA.gamesOffered, tradeB.gamesDesired?.[0]) ||
+    (tradeB.gamesDesired || []).some(g => gamesOverlap(tradeA.gamesOffered, g));
+  const bOffersWhatAWants = tradeA.anyGame || gamesOverlap(tradeB.gamesOffered, tradeA.gamesDesired?.[0]) ||
+    (tradeA.gamesDesired || []).some(g => gamesOverlap(tradeB.gamesOffered, g));
+  
+  if (tradeA.fullSeasonTrade && tradeB.fullSeasonTrade) {
+    score += gameValue;
+    reasons.push('Full season match (+40)')
+    console.log(`  [Full Season] Full season match! 40`);
+  } else if (!!tradeA.fullSeasonTrade != !!tradeB.fullSeasonTrade) {
+    console.log(`  [Game] Full season mismatch: return 0`);
+    return { score: 0, reasons: ['Only one user wants full season trade.']}
+  } else if (JSON.stringify(tradeA.gamesDesired) === JSON.stringify(tradeB.gamesOffered)
+             && JSON.stringify(tradeA.gamesOffered) == JSON.stringify(tradeB.gamesDesired)) {
+    score += gameValue;
+    reasons.push('Trades have exact match game(s) (+40)');
+    console.log(`  [Game] Full match: +40`);
+  } else if (aOffersWhatBWants && bOffersWhatAWants) {
+    score += gameValue * .5;
+    reasons.push('Trades have complementary games (+20)');
+    console.log(`  [Game] Full match: +20`);
+  } else if (aOffersWhatBWants || bOffersWhatAWants) {
+    score += gameValue * .25;
+    reasons.push('One side has matching games (+10)');
+    console.log(`  [Game] Partial match: +10`);
+  } else {
+    reasons.push('Minimal game requirements not met (+0)');
+    console.log(`  [Game] No match: return 0`);
+    return { score, reasons };
+  }
+
+  // B. Section Type Match
+  const { sectionScore, sectionReasons } = tradeSectionTypeScore(tradeA, tradeB);
+  score += sectionScore;
+  reasons.push(sectionReasons);
+
+  // C. Quantity Match
+  const { qtyScore, qtyReason } = quantityScore(tradeA, tradeB);
+  score += qtyScore;
+  reasons.push(qtyReason);
+
+  // D. Adjacency Match
+  if (seatsAreAdjacent(tradeA) == seatsAreAdjacent(tradeB)) {
+    score += adjacencyValue;
+    reasons.push(`Adjacency needs met: ${seatsAreAdjacent(tradeA)} (+10)`);
+    console.log(`  [Adjacency] Exact match: +10`);
+  } else {
+    reasons.push('Seat adjacency preference mismatch (+0)');
+    console.log(`  [Adjacency] Mismatch: +0`);
+  }
+
+  console.log(`  [Total] Score: ${score}`);
+  return { score, reasons };
+}
+
+/**
+ * Get pairings for a Trade Request against other Trade Requests
+ */
+async function getOpenPairingsForTradeRequest(sourceTicket, includeAll = false) {
+  console.log(`[Trade Pairing] Finding trade pairings for: ${sourceTicket._id}`);
+
+  // Find other open trade requests (not from same user)
+  const potentialTrades = await TradeRequest.find({
+    status: 'open',
+    userId: { $ne: sourceTicket.userId }
+  }).populate('gamesOffered').populate('gamesDesired');
+
+  console.log(`[Trade Pairing] Found ${potentialTrades.length} potential trade matches`);
+
+  const pairings = [];
+  const sourceObj = sourceTicket.toObject();
+
+  for (const trade of potentialTrades) {
+    const tradeObj = trade.toObject();
+    const { score, reasons } = calculateTradePairingScore(sourceObj, tradeObj);
+
+    const threshold = includeAll ? 0 : minMatchScore;
+    if (score > threshold) {
+      // Trim lastName for privacy
+      if (tradeObj.userSnapshot?.lastName) {
+        tradeObj.userSnapshot.lastName = tradeObj.userSnapshot.lastName.charAt(0);
+      }
+
+      pairings.push({
+        ticket: tradeObj,
+        score,
+        reasons,
+        maxScore: maxScoreTrade
+      });
+    }
+  }
+
+  pairings.sort((a, b) => b.score - a.score);
+  console.log(`[Trade Pairing] Returning ${pairings.length} trade pairings`);
+
+  return { sourceTicket, pairings, error: null };
+}
 
 /**
  * Calculate a pairing score between a sale (SellRequest) and a request (BuyRequest)
@@ -530,7 +708,7 @@ export function calculatePairingScore(saleTicket, requestTicket) {
 
   console.log(`[Ticket Pairing] Calculating score: Sale ${saleTicket._id} vs Request ${requestTicket._id}`);
 
-  // A. Game Date Match
+  // A. Game Match
   const saleGameId = saleTicket.gameId._id || saleTicket.gameId;
   const requestGameId = requestTicket.gameId._id || requestTicket.gameId;
 
@@ -539,7 +717,10 @@ export function calculatePairingScore(saleTicket, requestTicket) {
     score += gameValue;
     reasons.push('Game match (+40)');
     console.log(`  [Game] Exact match: +40`);
-  } 
+  } else {
+    console.log(`  [Game] mismatch, abort match attempt`);
+    return { score: 0, reasons: ['Game mismatch, no score']}
+  }
   /** IF desire to add game range matching
   else {
     // Check date proximity if games are different
@@ -567,28 +748,22 @@ export function calculatePairingScore(saleTicket, requestTicket) {
 
   // B. Section Match
   if (saleTicket.sectionTypeOffered === requestTicket.sectionTypeDesired) {
-    score += seatValue;
-    reasons.push(`Exact section match: ${saleTicket.sectionTypeLabel} (+30)`);
-    console.log(`  [Section] Exact match: +30`);
-  } else if (requestTicket.anySection) {
-    score += seatValue / 2;
-    reasons.push(`Buyer accepts any section (+20)`);
-    console.log(`  [Section] Any section accepted: +20`);
+    score += sectionValue;
+    reasons.push(`Exact section match (+20)`);
+    console.log(`  [Section] Exact match: +20`);
+  } else if (requestTicket.anySectionDesired) {
+    score += sectionValue / 2;
+    reasons.push(`Buyer accepts any section (+10)`);
+    console.log(`  [Section] Any section accepted: +10`);
   } else {
-    reasons.push(`Section mismatch: ${saleTicket.sectionTypeLabel} vs ${requestTicket.sectionTypeLabel} (+0)`);
+    reasons.push(`Section mismatch: (+0)`);
     console.log(`  [Section] Mismatch: +0`);
   }
 
   // C. Quantity Match
-  const saleTicketQuantity = saleTicket.seats?.length > 0 ? saleTicket.seats?.length : saleTicket.numTickets;
-  if (saleTicketQuantity >= requestTicket.numTickets) {
-    score += qtyValue;
-    reasons.push(`Quantity satisfied: ${saleTicketQuantity} available, ${requestTicket.numTickets} needed (+20)`);
-    console.log(`  [Quantity] Satisfied: +20`);
-  } else {
-    reasons.push(`Insufficient quantity: ${saleTicketQuantity} available, ${requestTicket.numTickets} needed (+0)`);
-    console.log(`  [Quantity] Insufficient: +0`);
-  }
+  const { qtyScore, qtyReason } = quantityScore(saleTicket, requestTicket);
+  score += qtyScore;
+  reasons.push(qtyReason);
 
   // D. Price Match
   const isDonation = saleTicket.donatingFree;
@@ -604,39 +779,36 @@ export function calculatePairingScore(saleTicket, requestTicket) {
     score -= 100;
     priceStatus = 'donation_mismatch';
     reasons.push('Seller is donating for free -100, kill match');
+    console.log(`  [Donation] mismatch, abort match attempt`);
+    return { score, reasons }
     // TODO - find a way to reconcile if there are free tickets available, but no request for donated
-    console.log(`  [Price] Seller donating: -100`);
   } else if (requestTicket.maxPrice !== undefined && saleTicket.minPrice !== undefined) {
     if (saleTicket.minPrice <= requestTicket.maxPrice) {
-      score += 20;
+      score += priceValue;
       priceStatus = 'compatible';
-      reasons.push(`Price compatible: asking $${saleTicket.minPrice} (+20)`);
-      console.log(`  [Price] Compatible: +20`);
+      reasons.push(`Price compatible (+15)`);
+      console.log(`  [Price] Compatible: +15`);
     } else if ((saleTicket.minPrice - requestTicket.maxPrice) / requestTicket.maxPrice < 0.25) {
-      score += 10;
+      score += priceValue * 2/3;
       priceStatus = 'negotiation_likely';
-      reasons.push(`Price close: asking $${saleTicket.minPrice} (+10)`);
+      reasons.push(`Price close (+10)`);
       console.log(`  [Price] Approximate: +10`);
     } else {
       priceStatus = 'negotiation_needed';
-      reasons.push(`Price gap: asking $${saleTicket.minPrice} (+0)`);
+      reasons.push(`Price gap (+0)`);
       console.log(`  [Price] Mismatch: +0`);
     }
   } else {
     priceStatus = 'incomplete';
-    reasons.push('Price information incomplete (+0)');
+    reasons.push('Price info incomplete (+0)');
     console.log(`  [Price] Incomplete info: +0`);
   }
 
   // E. Seat Adjacency
-  if (saleTicket.ticketsTogether && requestTicket.ticketsTogether) {
+  if (seatsAreAdjacent(saleTicket) == requestTicket.ticketsTogether) {
     score += 10;
-    reasons.push('Both want adjacent seats (+10)');
-    console.log(`  [Adjacency] Both want together: +10`);
-  } else if (!saleTicket.ticketsTogether && !requestTicket.ticketsTogether) {
-    score += 5;
-    reasons.push('Neither requires adjacent seats (+5)');
-    console.log(`  [Adjacency] Neither cares: +5`);
+    reasons.push(`Adjacency needs met: ${seatsAreAdjacent(saleTicket)} (+10)`);
+    console.log(`  [Adjacency] Exact match: +10`);
   } else {
     reasons.push('Seat adjacency preference mismatch (+0)');
     console.log(`  [Adjacency] Mismatch: +0`);
@@ -657,11 +829,16 @@ async function getOpenPairingsForTicketRequest(ticketId, includeAll = false) {
   console.log(`[Ticket Pairing] Finding pairings for ticket: ${ticketId} (includeAll: ${includeAll})`);
 
   // Find the source ticket and populate game data
-  const sourceTicket = await TicketRequest.findById(ticketId).populate('gameId');
+  const sourceTicket = await TicketRequest.findById(ticketId).populate('gameId').populate('gamesOffered').populate('gamesDesired');
 
   if (!sourceTicket || sourceTicket.status !== 'open') {
     console.warn(`[Ticket Pairing] Ticket Request not found or unavailable: ${ticketId}`);
     return { sourceTicket: null, pairings: [], error: 'Ticket Request not found or unavailable' };
+  }
+
+  // Separate path for Trade Requests - diverge here
+  if (sourceTicket.__t === 'TradeRequest') {
+    return getOpenPairingsForTradeRequest(sourceTicket, includeAll);
   }
 
   // Handle orphaned game reference (game was deleted but ticket still exists)
@@ -741,8 +918,6 @@ async function getOpenPairingsForTicketRequest(ticketId, includeAll = false) {
         matchObj.maxPrice = null;
       }
 
-      // matchObj.sectionTypeLabel = getSectionTypeLabel(matchObj);
-
       pairings.push({
         ticket: matchObj,
         score,
@@ -764,7 +939,7 @@ async function getOpenPairingsForTicketRequest(ticketId, includeAll = false) {
 /**
  * Get match status or potential pairings for a ticket
  *
- * If ticket is in an active match (pending/accepted), returns match details with full user info.
+ * If ticket is in an active match (pending/accepted/completed), returns match details with full user info.
  * Otherwise, returns potential pairings.
  *
  * GET /api/tickets/pairing/:ticketId
@@ -775,7 +950,7 @@ export async function getTicketPairingsOrMatch(req, res) {
     const includeAll = req.query.all === 'true';
     const ticketId = req.params.ticketId;
 
-    // Check if ticket is in an non-cancelled match (pending, accepted, completed)
+    // Check if ticket is in an non-cancelled match (initiated, accepted, completed)
     const activeMatch = await Match.findOne({
       $or: [
         { initiatorTicketId: ticketId },
@@ -787,14 +962,18 @@ export async function getTicketPairingsOrMatch(req, res) {
         path: 'initiatorTicketId',
         populate: [
           { path: 'userId', select: 'username discordHandle email firstName lastName' },
-          { path: 'gameId', select: 'opponent date venue' }
+          { path: 'gameId', select: 'opponent date venue tbdTime' },
+          { path: 'gamesOffered', select: 'opponent date venue tbdTime' },
+          { path: 'gamesDesired', select: 'opponent date venue tbdTime' }
         ]
       })
       .populate({
         path: 'matchedTicketId',
         populate: [
           { path: 'userId', select: 'username discordHandle email firstName lastName' },
-          { path: 'gameId', select: 'opponent date venue' }
+          { path: 'gameId', select: 'opponent date venue tbdTime' },
+          { path: 'gamesOffered', select: 'opponent date venue tbdTime' },
+          { path: 'gamesDesired', select: 'opponent date venue tbdTime' }
         ]
       });
 
@@ -805,12 +984,21 @@ export async function getTicketPairingsOrMatch(req, res) {
       const userTicket = isInitiator ? activeMatch.initiatorTicketId : activeMatch.matchedTicketId;
       const counterpartyTicket = isInitiator ? activeMatch.matchedTicketId : activeMatch.initiatorTicketId;
 
+      // Convert to plain objects so we can modify properties
+      const userTicketObj = userTicket.toObject();
+      const counterpartyTicketObj = counterpartyTicket.toObject();
+
+      // Have seller price set the market, intent to keep tickets accessible!
+      if (counterpartyTicket.__t === 'BuyRequest' && counterpartyTicket.maxPrice > userTicket.minPrice) {
+        counterpartyTicketObj.maxPrice = userTicket.minPrice;
+      }
+
       return res.json({
         success: true,
         hasActiveMatch: true,
         match: activeMatch,
-        userTicket: userTicket.toObject(),
-        counterpartyTicket: counterpartyTicket.toObject(),
+        userTicket: userTicketObj,
+        counterpartyTicket: counterpartyTicketObj,
         counterpartyUser: counterpartyTicket.userId
       });
     }
@@ -876,7 +1064,7 @@ export async function getAllUserTicketPairings(req, res) {
     const userTicketRequests = await TicketRequest.find({
       userId: req.user._id,
       status: 'open'
-    }).populate('gameId');
+    }).populate('gameId').populate('gamesOffered').populate('gamesDesired');
 
     for (const userTicketRequest of userTicketRequests) {
       const { sourceTicket, pairings, error } = await getOpenPairingsForTicketRequest(userTicketRequest._id, true);

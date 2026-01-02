@@ -26,7 +26,7 @@ router.get('/admin/matches', verifyFirebaseToken, isAdmin, getAllMatches);
 router.post('/direct/:targetTicketId', verifyFirebaseToken, initiateDirectMatch);
 
 // Match lifecycle routes (literal paths before :matchId param)
-// POST /api/matchmaker/:matchId/accept - accept a pending match
+// POST /api/matchmaker/:matchId/accept - accept an initiated match
 router.post('/:matchId/accept', verifyFirebaseToken, isMatchParticipantOrAdmin(req => req.params.matchId), acceptMatch);
 
 // POST /api/matchmaker/:matchId/cancel - cancel a match
