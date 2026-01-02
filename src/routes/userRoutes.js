@@ -10,7 +10,8 @@ import {
     getUserPublicProfile,
     deactivateUser,
     verifyUserExists,
-    getUserByFirebaseId
+    getUserByFirebaseId,
+    acceptTermsOfService
 } from '../controllers/userController.js';
 
 const router = express.Router();
@@ -42,6 +43,9 @@ router.route('/:id/deactivate')
 
 router.route('/:id/public')
     .get(verifyFirebaseToken, getUserPublicProfile);
+
+router.route('/:id/accept-tos')
+    .post(verifyFirebaseToken, isUserOwnerOrAdmin(req => req.params.id), acceptTermsOfService);
 
 // Plain parameter routes LAST
 router.route('/:id')
