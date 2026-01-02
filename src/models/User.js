@@ -9,7 +9,7 @@ const userSchema = new mongoose.Schema({
   discordHandle: { type: String },
   authProvider: { type: String, enum: ['google', 'email', 'dirigounion'], default: 'email' },
   role: { type: String, enum: ['admin', 'user'], default: 'user' },
-  termsAccepted: { type: Date, default: new Date() },
+  termsAccepted: { type: Date, default: null },
   // Soft delete - deactivated accounts
   deactivated: { type: Boolean, default: false },
   deactivatedAt: { type: Date },

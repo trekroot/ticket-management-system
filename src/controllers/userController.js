@@ -17,7 +17,7 @@ import { logAdminAction } from '../services/adminAuditService.js';
  */
 const USER_FIELDS = {
   // Full profile - for user viewing their own account
-  private: 'username firstName lastName email discordHandle authProvider role createdAt',
+  private: 'username firstName lastName email discordHandle authProvider role createdAt termsAccepted',
 
   // Public profile - for matched users to see each other
   public: 'firstName lastName discordHandle'
@@ -438,6 +438,44 @@ export const verifyUserExists = async (req, res) => {
     res.status(500).json({
       success: false,
       exists: false,
+      error: error.message
+    });
+  }
+};
+
+/**
+ * POST /api/users/:id/accept-tos
+ * Record user acceptance of Terms of Service
+ */
+export const acceptTermsOfService = async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { termsAccepted: new Date() },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: user
+    });
+  } catch (error) {
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid user ID format'
+      });
+    }
+
+    res.status(500).json({
+      success: false,
       error: error.message
     });
   }
