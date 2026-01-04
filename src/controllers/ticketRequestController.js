@@ -41,7 +41,7 @@ export const getTicketSeatingFormat = async (req, res) => {
 
 /**
  * GET /api/tickets
- * Get all ticket requests (both buy, sell, and trade)
+ * Get all ticket requests (buy, sell, and trade)
  *
  * Query params:
  *   - type: 'buy' | 'sell' | 'trade' (optional, filter by type)
@@ -50,7 +50,7 @@ export const getTicketSeatingFormat = async (req, res) => {
  */
 export const getAllRequests = async (req, res) => {
   try {
-    const { type, status } = req.query;
+    const { type, status, includeDonationOffers } = req.query;
 
     // Choose which model to query based on type filter
     let Model = TicketRequest;  // Default: query all types
@@ -61,6 +61,8 @@ export const getAllRequests = async (req, res) => {
     // Build filter object from query params
     const filter = {};
     if (status) filter.status = status;
+
+    if (!includeDonationOffers) filter.donatingFree = { $ne: true };
 
     // Add to filter
     // Find upcoming games TODO IF DESIRED IN FUTURE to fuzzy match games
