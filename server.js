@@ -9,6 +9,7 @@ import matchmakerRoutes from './src/routes/matchmakerRoutes.js';
 import healthStatusRoutes from './src/routes/healthStatusRoutes.js';
 import feedbackRoutes from './src/routes/feedbackRoutes.js';
 import adminAuditRoutes from './src/routes/adminAuditRoutes.js';
+import wixAuthRoutes from './src/routes/wixAuthRoutes.js';
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.use('/api/matchmaker', matchmakerRoutes);
 app.use('/api/version', healthStatusRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/admin/audit', adminAuditRoutes);
+app.use('/api/auth', wixAuthRoutes);
 
 // Test route
 app.get('/', (req, res) => {

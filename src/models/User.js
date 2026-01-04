@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 
 const userSchema = new mongoose.Schema({
   firebaseUid: { type: String, unique: true, sparse: true }, // Links to Firebase Auth
+  wixMemberId: { type: String, unique: true, sparse: true }, // Links to Wix Member
   username: { type: String, required: true, unique: true },
   firstName: { type: String, required: true },
   lastName: { type: String, required: true },
