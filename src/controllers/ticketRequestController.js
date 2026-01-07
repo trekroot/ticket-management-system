@@ -561,13 +561,10 @@ function quantityScore(ticketA, ticketB) {
   const ticketAQty = getNumTickets(ticketA);
   const ticketBQty = getNumTickets(ticketB);
   if (ticketAQty === ticketBQty) {
-    console.log(`  [Quantity] Exact match: +15`);
     return { qtyScore: qtyValue, qtyReason: 'Exact quantity match (+15)' }
   } else if (Math.abs(ticketAQty - ticketBQty) <= 1) {
-    console.log(`  [Quantity] Close ${ticketAQty} vs ${ticketBQty}: +5`);
     return { qtyScore: qtyValue * 1/3, qtyReason: `Close quantity: ${ticketAQty} vs ${ticketBQty} (+5)` }
   } else {
-    console.log(`  [Quantity] Mismatch ${ticketAQty} vs ${ticketBQty}: +0`);
     return { qtyScore: 0, qtyReason: `Quantity mismatch: ${ticketAQty} vs ${ticketBQty} (+0)`}
   }
 }
@@ -615,18 +612,14 @@ function calculateTradePairingScore(tradeA, tradeB) {
              && JSON.stringify(tradeA.gamesOffered) == JSON.stringify(tradeB.gamesDesired)) {
     score += gameValue;
     reasons.push('Trades have exact match game(s) (+40)');
-    console.log(`  [Game] Full match: +40`);
   } else if (aOffersWhatBWants && bOffersWhatAWants) {
     score += gameValue * .5;
     reasons.push('Trades have complementary games (+20)');
-    console.log(`  [Game] Full match: +20`);
   } else if (aOffersWhatBWants || bOffersWhatAWants) {
     score += gameValue * .25;
     reasons.push('One side has matching games (+10)');
-    console.log(`  [Game] Partial match: +10`);
   } else {
     reasons.push('Minimal game requirements not met (+0)');
-    console.log(`  [Game] No match: return 0`);
     return { score, reasons };
   }
 
@@ -644,10 +637,8 @@ function calculateTradePairingScore(tradeA, tradeB) {
   if (seatsAreAdjacent(tradeA) == seatsAreAdjacent(tradeB)) {
     score += adjacencyValue;
     reasons.push(`Adjacency needs met: ${seatsAreAdjacent(tradeA)} (+10)`);
-    console.log(`  [Adjacency] Exact match: +10`);
   } else {
     reasons.push('Seat adjacency preference mismatch (+0)');
-    console.log(`  [Adjacency] Mismatch: +0`);
   }
 
   console.log(`  [Total] Score: ${score}`);
@@ -718,7 +709,6 @@ export function calculatePairingScore(saleTicket, requestTicket) {
   if (!requestGameId || saleGameId.toString() === requestGameId.toString()) {
     score += gameValue;
     reasons.push('Game match (+40)');
-    console.log(`  [Game] Exact match: +40`);
   } else {
     console.log(`  [Game] mismatch, abort match attempt`);
     return { score: 0, reasons: ['Game mismatch, no score']}
@@ -752,14 +742,11 @@ export function calculatePairingScore(saleTicket, requestTicket) {
   if (saleTicket.sectionTypeOffered === requestTicket.sectionTypeDesired) {
     score += sectionValue;
     reasons.push(`Exact section match (+20)`);
-    console.log(`  [Section] Exact match: +20`);
   } else if (requestTicket.anySectionDesired) {
     score += sectionValue / 2;
     reasons.push(`Buyer accepts any section (+10)`);
-    console.log(`  [Section] Any section accepted: +10`);
   } else {
     reasons.push(`Section mismatch: (+0)`);
-    console.log(`  [Section] Mismatch: +0`);
   }
 
   // C. Quantity Match
@@ -789,31 +776,25 @@ export function calculatePairingScore(saleTicket, requestTicket) {
       score += priceValue;
       priceStatus = 'compatible';
       reasons.push(`Price compatible (+15)`);
-      console.log(`  [Price] Compatible: +15`);
     } else if ((saleTicket.minPrice - requestTicket.maxPrice) / requestTicket.maxPrice < 0.25) {
       score += priceValue * 2/3;
       priceStatus = 'negotiation_likely';
       reasons.push(`Price close (+10)`);
-      console.log(`  [Price] Approximate: +10`);
     } else {
       priceStatus = 'negotiation_needed';
       reasons.push(`Price gap (+0)`);
-      console.log(`  [Price] Mismatch: +0`);
     }
   } else {
     priceStatus = 'incomplete';
     reasons.push('Price info incomplete (+0)');
-    console.log(`  [Price] Incomplete info: +0`);
   }
 
   // E. Seat Adjacency
   if (seatsAreAdjacent(saleTicket) == requestTicket.ticketsTogether) {
     score += 10;
     reasons.push(`Adjacency needs met: ${seatsAreAdjacent(saleTicket)} (+10)`);
-    console.log(`  [Adjacency] Exact match: +10`);
   } else {
     reasons.push('Seat adjacency preference mismatch (+0)');
-    console.log(`  [Adjacency] Mismatch: +0`);
   }
 
   console.log(`  [Total] Score: ${score}, [Percent]: ${score}/${maxScore}`);
@@ -855,7 +836,6 @@ async function getOpenPairingsForTicketRequest(ticketId, includeAll = false) {
   const isSellRequest = sourceTicket.__t === 'SellRequest';
   const OppositeModel = isSellRequest ? BuyRequest : SellRequest;
 
-  console.log(`[Ticket Pairing] Looking for ${isSellRequest ? 'BuyRequests' : 'SellRequests'}`);
   
   /** LATER OPTION TO ADD BACK IN DATE RANGE FILTER - see calculatePairingScore
   // Find game date range (7 days before and after)

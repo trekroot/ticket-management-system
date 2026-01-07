@@ -18,8 +18,10 @@ const JWT_EXPIRES_IN = '7d';
  * Verify HMAC signature from Wix
  */
 function verifySignature(payload, timestamp, signature) {
+  // Must match Wix format: timestamp + JSON.stringify(payload)
+  const message = timestamp + JSON.stringify(payload);
   const expectedSignature = createHmac('sha256', WIX_SHARED_SECRET)
-    .update(`${JSON.stringify(payload)}:${timestamp}`)
+    .update(message)
     .digest('hex');
 
   return signature === expectedSignature;
@@ -34,7 +36,7 @@ function verifySignature(payload, timestamp, signature) {
  * - timestamp: Unix timestamp (ms) when token was generated
  * - signature: HMAC-SHA256 signature
  */
-export const authenticateWixMember = async (req, res) => {
+export const authenticateWixUser = async (req, res) => {
   try {
     const { payload, timestamp, signature } = req.body;
 
@@ -48,7 +50,6 @@ export const authenticateWixMember = async (req, res) => {
 
     // Check secrets are configured
     if (!WIX_SHARED_SECRET || !JWT_SECRET) {
-      console.error('WIX_SHARED_SECRET or JWT_SECRET not configured');
       return res.status(500).json({
         success: false,
         error: 'Server configuration error'
@@ -56,7 +57,7 @@ export const authenticateWixMember = async (req, res) => {
     }
 
     // Verify timestamp freshness (prevent replay attacks)
-    const age = Date.now() - timestamp;
+    const age = Date.now() - (timestamp * 1000);
     if (age > TOKEN_MAX_AGE_MS || age < 0) {
       return res.status(401).json({
         success: false,
@@ -70,41 +71,32 @@ export const authenticateWixMember = async (req, res) => {
         success: false,
         error: 'Invalid signature'
       });
-    }
-
-    const { id: wixMemberId, loginEmail, firstName, lastName } = payload;
+    }  
+    console.log(payload);
+    const { wixUserId, email, firstName, lastName, username } = payload;
 
     // Find existing user by Wix member ID or email
     let user = await User.findOne({
       $or: [
-        { wixMemberId },
-        { email: loginEmail }
+        ...(wixUserId ? [{ wixUserId }] : []),
+        { email }
       ]
     });
 
     if (user) {
-      // Link Wix ID if not already linked
-      if (!user.wixMemberId) {
-        user.wixMemberId = wixMemberId;
-        user.authProvider = 'dirigounion';
+      // Link Wix ID if not already linked (don't overwrite authProvider)
+      if (!user.wixUserId) {
+        console.log(`Add WiX user to existing email ${email} from ${user.authProvider}`);
+        user.wixUserId = wixUserId;
+        user.notes = `${user.notes || ''}[${new Date().toISOString()}] Linked wixUserId via cross-login\n`
         await user.save();
       }
     } else {
-      // Create new user from Wix member data
-      // Generate username from email (before @)
-      const baseUsername = loginEmail.split('@')[0].replace(/[^a-zA-Z0-9]/g, '');
-      let username = baseUsername;
-      let counter = 1;
-
-      // Ensure unique username
-      while (await User.findOne({ username })) {
-        username = `${baseUsername}${counter++}`;
-      }
-
+      console.log(`Create new user from WiX, email: ${email}`)
       user = await User.create({
-        wixMemberId,
-        email: loginEmail,
-        firstName: firstName || 'Member',
+        wixUserId: wixUserId,
+        email: email,
+        firstName: firstName || 'Update Name - Acct from DU Site',
         lastName: lastName || '',
         username,
         authProvider: 'dirigounion'
@@ -121,20 +113,17 @@ export const authenticateWixMember = async (req, res) => {
       { expiresIn: JWT_EXPIRES_IN }
     );
 
+    // Return user without firebaseUid
+    const userResponse = user.toObject();
+    delete userResponse.firebaseUid;
+
     res.json({
       success: true,
       token,
-      user: {
-        _id: user._id,
-        username: user.username,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        termsAccepted: user.termsAccepted
-      }
+      user: userResponse
     });
   } catch (error) {
-    console.error('Wix auth error:', error);
+    console.error('WiX auth error:', error);
     res.status(500).json({
       success: false,
       error: error.message
