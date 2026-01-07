@@ -86,7 +86,6 @@ export const authenticateWixUser = async (req, res) => {
     if (user) {
       // Link Wix ID if not already linked (don't overwrite authProvider)
       if (!user.wixUserId) {
-        console.log(`Add WiX user to existing email ${email} from ${user.authProvider}`);
         user.wixUserId = wixUserId;
         user.notes = `${user.notes || ''}[${new Date().toISOString()}] Linked wixUserId via cross-login\n`
         await user.save();
