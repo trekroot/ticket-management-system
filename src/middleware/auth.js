@@ -1,20 +1,56 @@
+import jwt from 'jsonwebtoken';
 import admin from '../config/firebase.js';
 import User from '../models/User.js';
 
 /**
- * Middleware to verify Firebase ID tokens.
- * 
- * How it works:
- * 1. Client logs in via Firebase (browser/mobile)
- * 2. Client gets an ID token from Firebase
- * 3. Client sends token in Authorization header: "Bearer <token>"
- * 4. This middleware verifies the token with Firebase
- * 5. If valid, req.user contains the decoded token (uid, email, 
- etc.)
-*/
+ * Middleware to verify authentication tokens.
+ *
+ * Supports two auth methods:
+ * 1. JWT (for Wix/iFrame users) - verified locally
+ * 2. Firebase ID tokens (for admin/standalone users) - verified with Firebase
+ *
+ * Client sends token in Authorization header: "Bearer <token>"
+ * If valid, req.user contains the MongoDB user document.
+ */
 
+const JWT_SECRET = process.env.JWT_SECRET;
+
+/**
+ * Try to verify token as our JWT first, then fall back to Firebase
+ */
+async function verifyToken(token) {
+  // Try JWT first (cheaper - no network call)
+  if (JWT_SECRET) {
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      const user = await User.findById(decoded.userId);
+      if (user) {
+        return { user, provider: 'jwt' };
+      }
+    } catch {
+      // Not a valid JWT, try Firebase
+    }
+  }
+
+  // Fall back to Firebase
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    const user = await User.findOne({ firebaseUid: decodedToken.uid });
+    if (user) {
+      return { user, provider: 'firebase' };
+    }
+  } catch {
+    // Not a valid Firebase token either
+  }
+
+  return null;
+}
+
+/**
+ * Main auth middleware - requires valid token
+ */
 export async function verifyFirebaseToken(req, res, next) {
-  // Dev bypass - skip Firebase auth and use a test user
+  // Dev bypass - skip auth and use a test user
   if (process.env.NODE_ENV === 'dev' && process.env.BYPASS_AUTH === 'true') {
     const testUser = await User.findById(process.env.BYPASS_AUTH_USER_ID);
     if (testUser) {
@@ -35,18 +71,15 @@ export async function verifyFirebaseToken(req, res, next) {
   const token = authHeader.split(' ')[1];
 
   try {
-    // Firebase verify: signature, expiry, and project
-    const decodedToken = await admin.auth().verifyIdToken(token);
+    const result = await verifyToken(token);
 
-    // Look up the MongoDB user by their Firebase UID
-    const user = await User.findOne({ firebaseUid: decodedToken.uid });
-
-    if (!user) {
+    if (!result) {
       return res.status(401).json({ error: 'User not found in database' });
     }
 
     // Attach full MongoDB user to request (has _id, role, etc.)
-    req.user = user;
+    req.user = result.user;
+    req.authProvider = result.provider;
 
     next();
   } catch (error) {
@@ -78,25 +111,25 @@ export async function verifyFirebaseTokenOnly(req, res, next) {
   }
 }
 
-export async function optionalAuth( req, res, next) {
+/**
+ * Optional auth - populates req.user if valid token, otherwise continues
+ */
+export async function optionalAuth(req, res, next) {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return next();
   }
-  
+
   // Extract token
   const token = authHeader.split(' ')[1];
 
   try {
-    // Firebase verify: signature, expiry, and project
-    const decodedToken = await admin.auth().verifyIdToken(token);
-
-    // Look up the MongoDB user by their Firebase UID
-    const user = await User.findOne({ firebaseUid: decodedToken.uid });
-
-    // Attach full MongoDB user to request (has _id, role, etc.)
-    if (user) req.user = user
+    const result = await verifyToken(token);
+    if (result) {
+      req.user = result.user;
+      req.authProvider = result.provider;
+    }
   } catch (error) {
     console.error('Token verification failed, proceed with empty user', error.message);
   }

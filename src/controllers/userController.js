@@ -120,7 +120,28 @@ export const getAllUsers = async (req, res) => {
  */
 export const createUser = async (req, res) => {
   try {
-    const user = await User.create(req.body);
+    const { email, firebaseUid } = req.body;
+
+    // Check if user already exists (e.g., from WiX registration)
+    let user = await User.findOne({ email });
+
+    if (user) {
+      // Link Firebase UID if not already linked
+      if (!user.firebaseUid && firebaseUid) {
+        user.firebaseUid = firebaseUid;
+        user.notes = `${user.notes || ''}[${new Date().toISOString()}] Linked firebaseUid via cross-login from ${req.body.authProvider}\n`;
+        await user.save();
+      }
+      // Return existing user (now linked)
+      return res.status(200).json({
+        success: true,
+        data: user,
+        linked: true
+      });
+    }
+
+    // Create new user
+    user = await User.create(req.body);
 
     res.status(201).json({
       success: true,
