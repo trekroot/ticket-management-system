@@ -2,6 +2,7 @@
 import Match from '../models/Match.js';
 import { TicketRequest, BuyRequest, SellRequest, TradeRequest } from '../models/TicketRequest.js';
 import User from '../models/User.js';
+import { checkPurchaseLimits } from './rateLimitService.js';
 
 /**
  * Match Service
@@ -416,6 +417,14 @@ export async function initiateDirectMatch(targetTicketId, userId, reason = '') {
     const isSellRequest = targetTicket.__t === 'SellRequest';
     const isTradeRequest = targetTicket.__t === 'TradeRequest';
     let createdTicket;
+
+    // Check purchase rate limits when creating a BuyRequest
+    if (isSellRequest) {
+      const limitCheck = await checkPurchaseLimits(userId, targetTicket.gameId._id);
+      if (!limitCheck.allowed) {
+        return { success: false, error: limitCheck.reason };
+      }
+    }
 
     if (isSellRequest) {
       // Target is selling, create a BuyRequest for initiator
