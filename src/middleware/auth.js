@@ -77,13 +77,6 @@ export async function verifyFirebaseToken(req, res, next) {
       return res.status(401).json({ error: 'User not found in database' });
     }
 
-    // PROD only: Restrict Firebase auth to admin users only
-    if (process.env.NODE_ENV === 'prod' && result.provider === 'firebase' && result.user.role !== 'admin') {
-      return res.status(403).json({
-        error: 'Please log in through the Dirigo Union website'
-      });
-    }
-
     // Attach full MongoDB user to request (has _id, role, etc.)
     req.user = result.user;
     req.authProvider = result.provider;
