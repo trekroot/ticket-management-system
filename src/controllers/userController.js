@@ -121,13 +121,22 @@ export const getAllUsers = async (req, res) => {
 export const createUser = async (req, res) => {
   try {
     const { email, firebaseUid } = req.body;
+    const isProd = process.env.NODE_ENV === 'prod';
 
     // Check if user already exists (e.g., from WiX registration)
     let user = await User.findOne({ email });
 
     if (user) {
-      // Link Firebase UID if not already linked
+      // PROD only: Only link Firebase UID for admin users
       if (!user.firebaseUid && firebaseUid) {
+        if (isProd && user.role !== 'admin') {
+          // Non-admin in prod: return user without linking Firebase
+          return res.status(200).json({
+            success: true,
+            data: user,
+            linked: false
+          });
+        }
         user.firebaseUid = firebaseUid;
         user.notes = `${user.notes || ''}[${new Date().toISOString()}] Linked firebaseUid via cross-login from ${req.body.authProvider}\n`;
         await user.save();
@@ -137,6 +146,14 @@ export const createUser = async (req, res) => {
         success: true,
         data: user,
         linked: true
+      });
+    }
+
+    // PROD only: Block new user creation via Firebase (must use Wix)
+    if (isProd && firebaseUid) {
+      return res.status(403).json({
+        success: false,
+        error: 'Please register through the Dirigo Union website'
       });
     }
 
