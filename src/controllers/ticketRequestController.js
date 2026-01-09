@@ -6,6 +6,7 @@ import Match from '../models/Match.js';
 import { logAdminAction } from '../services/adminAuditService.js';
 import { getMatchInfoForTickets } from '../services/matchService.js';
 import { getNumTickets } from '../utils/ticketHelper.js';
+import { checkPurchaseLimits, getUserPurchaseStats } from '../services/rateLimitService.js';
 
 /**
  * CONTROLLER: ticketRequestController
@@ -152,6 +153,18 @@ export const getRequestById = async (req, res) => {
  */
 export const createBuyRequest = async (req, res) => {
   try {
+    // Check purchase rate limits
+    const { gameId } = req.body;
+    if (gameId) {
+      const limitCheck = await checkPurchaseLimits(req.user._id, gameId);
+      if (!limitCheck.allowed) {
+        return res.status(429).json({
+          success: false,
+          error: limitCheck.reason
+        });
+      }
+    }
+
     // Use authenticated user's ID and snapshot their info for audit trail
     const buyRequest = await BuyRequest.create({
       ...req.body,
@@ -514,10 +527,14 @@ export const getRequestsByUser = async (req, res) => {
       return result;
     });
 
+    // Get purchase rate limit stats
+    const purchaseStats = await getUserPurchaseStats(userId);
+
     res.json({
       success: true,
       count: flaggedRequests.length,
-      data: flaggedRequests
+      data: flaggedRequests,
+      purchaseStats
     });
   } catch (error) {
     res.status(500).json({
