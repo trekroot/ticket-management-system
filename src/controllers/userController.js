@@ -201,55 +201,59 @@ export const updateUser = async (req, res) => {
       }
     }
 
-    // Cascade snapshot updates to user's non-completed tickets
+    // Cascade snapshot updates to user's non-completed tickets (best effort)
     // This keeps active ticket info in sync with current profile
-    const snapshotFields = ['discordHandle', 'username', 'firstName', 'lastName'];
-    const hasSnapshotChanges = snapshotFields.some(
-      field => req.body[field] !== undefined && req.body[field] !== userBefore?.[field]
-    );
-
-    if (hasSnapshotChanges) {
-      const newSnapshot = {
-        discordHandle: user.discordHandle,
-        username: user.username,
-        firstName: user.firstName,
-        lastName: user.lastName
-      };
-
-      // Update userSnapshot on user's own active tickets
-      await TicketRequest.updateMany(
-        { userId: req.params.id, status: { $in: ['open', 'matched'] } },
-        { userSnapshot: newSnapshot }
+    try {
+      const snapshotFields = ['discordHandle', 'username', 'firstName', 'lastName'];
+      const hasSnapshotChanges = snapshotFields.some(
+        field => req.body[field] !== undefined && req.body[field] !== userBefore?.[field]
       );
 
-      // Update counterpartySnapshot on matched tickets where this user is the counterparty
-      // Only for accepted matches (counterpartySnapshot is set at acceptance)
-      const userTickets = await TicketRequest.find({ userId: req.params.id }).select('_id');
-      const userTicketIds = userTickets.map(t => t._id);
+      if (hasSnapshotChanges) {
+        const newSnapshot = {
+          discordHandle: user.discordHandle,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName
+        };
 
-      // Find accepted matches involving this user's tickets
-      const activeMatches = await Match.find({
-        status: 'accepted',
-        $or: [
-          { initiatorTicketId: { $in: userTicketIds } },
-          { matchedTicketId: { $in: userTicketIds } }
-        ]
-      });
+        // Update userSnapshot on user's own active tickets
+        await TicketRequest.updateMany(
+          { userId: req.params.id, status: { $in: ['open', 'matched'] } },
+          { userSnapshot: newSnapshot }
+        );
 
-      // For each match, update counterpartySnapshot on the OTHER ticket
-      const counterpartySnapshot = {
-        ...newSnapshot,
-        email: user.email
-      };
+        // Update counterpartySnapshot on matched tickets where this user is the counterparty
+        // Only for accepted matches (counterpartySnapshot is set at acceptance)
+        const userTickets = await TicketRequest.find({ userId: req.params.id }).select('_id');
+        const userTicketIds = userTickets.map(t => t._id);
 
-      for (const match of activeMatches) {
-        const isInitiator = userTicketIds.some(id => id.equals(match.initiatorTicketId));
-        const otherTicketId = isInitiator ? match.matchedTicketId : match.initiatorTicketId;
-
-        await TicketRequest.findByIdAndUpdate(otherTicketId, {
-          counterpartySnapshot
+        // Find accepted matches involving this user's tickets
+        const activeMatches = await Match.find({
+          status: 'accepted',
+          $or: [
+            { initiatorTicketId: { $in: userTicketIds } },
+            { matchedTicketId: { $in: userTicketIds } }
+          ]
         });
+
+        // For each match, update counterpartySnapshot on the OTHER ticket
+        const counterpartySnapshot = {
+          ...newSnapshot,
+          email: user.email
+        };
+
+        await Promise.all(activeMatches.map(match => {
+          const isInitiator = userTicketIds.some(id => id.equals(match.initiatorTicketId));
+          const otherTicketId = isInitiator ? match.matchedTicketId : match.initiatorTicketId;
+
+          return TicketRequest.findByIdAndUpdate(otherTicketId, {
+            counterpartySnapshot
+          });
+        }));
       }
+    } catch (cascadeError) {
+      console.error('Failed to cascade snapshot updates:', cascadeError.message);
     }
 
     res.json({
