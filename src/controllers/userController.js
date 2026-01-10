@@ -429,16 +429,41 @@ export const getUserPublicProfile = async (req, res) => {
 /**
  * GET /api/users/verifyAccount/:firebaseUid
  * Check if a user has a valid account
+ *
+ * PROD: Only admin users can use Firebase login. Non-admins are rejected
+ * with a redirect URL to the Wix site.
  */
 export const verifyUserExists = async (req, res) => {
   try {
+    const isProd = process.env.NODE_ENV === 'prod';
+    const wixLoginUrl = process.env.WIX_REDIRECT_URL || 'https://www.dirigounion.com/members';
     const user = await User.findOne({firebaseUid: req.params.firebaseUid});
 
     if (!user) {
-      // Return 200 so frontend can handle registration flow without error
+      // PROD: Block - must register via Wix
+      if (isProd) {
+        return res.status(403).json({
+          success: false,
+          exists: false,
+          error: 'Please register through the Dirigo Union website',
+          redirectUrl: wixLoginUrl
+        });
+      }
+
+      // DEV: Allow registration flow
       return res.json({
         success: true,
         exists: false
+      });
+    }
+
+    // PROD: Only allow admin users via Firebase
+    if (isProd && user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        exists: true,
+        error: 'Please log in through the Dirigo Union website',
+        redirectUrl: wixLoginUrl
       });
     }
 
