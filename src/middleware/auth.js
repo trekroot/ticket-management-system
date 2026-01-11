@@ -49,7 +49,7 @@ async function verifyToken(token) {
 /**
  * Main auth middleware - requires valid token
  */
-export async function verifyFirebaseToken(req, res, next) {
+export async function verifyUserAuthenticated(req, res, next) {
   // Dev bypass - skip auth and use a test user
   if (process.env.NODE_ENV === 'dev' && process.env.BYPASS_AUTH === 'true') {
     const testUser = await User.findById(process.env.BYPASS_AUTH_USER_ID);
@@ -99,8 +99,9 @@ export async function verifyFirebaseToken(req, res, next) {
 /**
  * Light middleware - verifies Firebase token only, doesn't require DB user.
  * Use for endpoints like /verifyAccount where we need to check if user exists.
+ * Firebase-specific (for admin login flow).
  */
-export async function verifyFirebaseTokenOnly(req, res, next) {
+export async function verifyFirebaseAuth(req, res, next) {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {

@@ -3,6 +3,12 @@ import Match from '../models/Match.js';
 import { TicketRequest, BuyRequest, SellRequest, TradeRequest } from '../models/TicketRequest.js';
 import User from '../models/User.js';
 import { checkPurchaseLimits } from './rateLimitService.js';
+import {
+  sendMatchInitiatedNotification,
+  sendMatchAcceptedNotification,
+  sendMatchCancelledNotification,
+  sendMatchCompletedNotification
+} from './notificationService.js';
 
 /**
  * Match Service
@@ -65,6 +71,13 @@ export async function initiateMatch(initiatorTicketId, matchedTicketId, userId) 
       TicketRequest.findByIdAndUpdate(initiatorTicketId, { status: 'matched' }),
       TicketRequest.findByIdAndUpdate(matchedTicketId, { status: 'matched' })
     ]);
+
+    // Send notification to matched user (fire-and-forget)
+    const initiatorUser = await User.findById(userId).select('firstName lastName username discordHandle');
+    const populatedMatchedTicket = await TicketRequest.findById(matchedTicketId).populate('gameId');
+    sendMatchInitiatedNotification(populatedMatchedTicket, initiatorUser).catch(err =>
+      console.error('[MatchService] Notification error:', err.message)
+    );
 
     return { success: true, match };
   } catch (error) {
@@ -141,6 +154,16 @@ export async function acceptMatch(matchId, userId) {
       })
     ]);
 
+    // Notify the OTHER user (not the one who performed the action)
+    const populatedInitiatorTicket = await TicketRequest.findById(match.initiatorTicketId._id).populate('gameId');
+    const actorIsInitiator = initiatorUser._id.toString() === userId.toString();
+    const recipientUser = actorIsInitiator ? matchedUser : initiatorUser;
+    const actorUser = actorIsInitiator ? initiatorUser : matchedUser;
+
+    sendMatchAcceptedNotification(recipientUser, actorUser, populatedInitiatorTicket).catch(err =>
+      console.error('[MatchService] Notification error:', err.message)
+    );
+
     return { success: true, match, matchBefore };
   } catch (error) {
     console.error('[MatchService] acceptMatch error:', error);
@@ -196,6 +219,13 @@ export async function cancelMatch(matchId, userId, reason = '') {
       })
     ]);
 
+    // Send notification to both users (fire-and-forget)
+    // Populate gameId for email content
+    await match.populate('initiatorTicketId.gameId');
+    sendMatchCancelledNotification(match, reason).catch(err =>
+      console.error('[MatchService] Notification error:', err.message)
+    );
+
     return { success: true, match, matchBefore };
   } catch (error) {
     console.error('[MatchService] cancelMatch error:', error);
@@ -242,6 +272,13 @@ export async function completeMatch(matchId, userId) {
       TicketRequest.findByIdAndUpdate(match.initiatorTicketId._id, { status: 'completed' }),
       TicketRequest.findByIdAndUpdate(match.matchedTicketId._id, { status: 'completed' })
     ]);
+
+    // Send notification to both users (fire-and-forget)
+    // Populate gameId for email content
+    await match.populate('initiatorTicketId.gameId');
+    sendMatchCompletedNotification(match).catch(err =>
+      console.error('[MatchService] Notification error:', err.message)
+    );
 
     return { success: true, match, matchBefore };
   } catch (error) {

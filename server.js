@@ -11,6 +11,7 @@ import feedbackRoutes from './src/routes/feedbackRoutes.js';
 import adminAuditRoutes from './src/routes/adminAuditRoutes.js';
 import adminAuthRoutes from './src/routes/adminAuthRoutes.js';
 import wixAuthRoutes from './src/routes/wixAuthRoutes.js';
+import notificationRoutes from './src/routes/notificationRoutes.js';
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use('/api/feedback', feedbackRoutes);
 app.use('/api/admin/audit', adminAuditRoutes);
 app.use('/api/admin/auth', adminAuthRoutes);
 app.use('/api/auth', wixAuthRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Test route
 app.get('/', (req, res) => {
