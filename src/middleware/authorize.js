@@ -4,7 +4,7 @@ import Match from '../models/Match.js';
 /**
  * Authorization Middleware
  *
- * These run AFTER verifyFirebaseToken, so req.user is already
+ * These run AFTER verifyUserAuthenticated, so req.user is already
  * the full MongoDB user document (has _id, role, etc.)
  */
 

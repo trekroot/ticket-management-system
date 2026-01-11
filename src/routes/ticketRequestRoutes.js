@@ -1,5 +1,5 @@
 import express from 'express';
-import { verifyFirebaseToken, optionalAuth } from '../middleware/auth.js';
+import { verifyUserAuthenticated, optionalAuth } from '../middleware/auth.js';
 import { isTicketOwnerOrAdmin, isAdmin } from '../middleware/authorize.js';
 import {
   getAllRequests,
@@ -60,17 +60,17 @@ router.route('/')
 
 // Seating options
 router.route('/seating')
-  .get(verifyFirebaseToken, getTicketSeatingFormat);
+  .get(verifyUserAuthenticated, getTicketSeatingFormat);
 
 // Literal prefix routes FIRST
 router.route('/buy')
-  .post(verifyFirebaseToken, createBuyRequest);
+  .post(verifyUserAuthenticated, createBuyRequest);
 
 router.route('/sell')
-  .post(verifyFirebaseToken, createSellRequest);
+  .post(verifyUserAuthenticated, createSellRequest);
 
 router.route('/trade')
-  .post(verifyFirebaseToken, createTradeRequest);
+  .post(verifyUserAuthenticated, createTradeRequest);
 
 /**
  * Convenience routes for filtering
@@ -80,25 +80,25 @@ router.route('/trade')
  * GET /api/tickets/user/:userId   - All requests by a user (admin only)
  */
 router.route('/user')
-  .get(verifyFirebaseToken, getRequestsByUser);
+  .get(verifyUserAuthenticated, getRequestsByUser);
 
   router.route('/user/:userId')
-  .get(verifyFirebaseToken, isAdmin, getRequestsByUser);
+  .get(verifyUserAuthenticated, isAdmin, getRequestsByUser);
   
 router.route('/game/:gameId')
-  .get(verifyFirebaseToken, getRequestsByGame);
+  .get(verifyUserAuthenticated, getRequestsByGame);
 
 // Pairing-specific routes
-router.get('/pairing/', verifyFirebaseToken, getAllUserTicketPairings);
+router.get('/pairing/', verifyUserAuthenticated, getAllUserTicketPairings);
 
-router.get('/pairing/:ticketId', verifyFirebaseToken, isTicketOwnerOrAdmin(req => req.params.ticketId), getTicketPairingsOrMatch);
+router.get('/pairing/:ticketId', verifyUserAuthenticated, isTicketOwnerOrAdmin(req => req.params.ticketId), getTicketPairingsOrMatch);
 
-router.get('/pairing/:ticketId/best', verifyFirebaseToken, isTicketOwnerOrAdmin(req => req.params.ticketId), getBestTicketPairings);
+router.get('/pairing/:ticketId/best', verifyUserAuthenticated, isTicketOwnerOrAdmin(req => req.params.ticketId), getBestTicketPairings);
 
 // Parameter routes LAST
 router.route('/:id')
-  .get(verifyFirebaseToken, getRequestById) // make a public-safe endpoint with reduced user info
-  .put(verifyFirebaseToken, isTicketOwnerOrAdmin(req => req.params.id), updateRequest)
-  .delete(verifyFirebaseToken, isTicketOwnerOrAdmin(req => req.params.id), deleteRequest);
+  .get(verifyUserAuthenticated, getRequestById) // make a public-safe endpoint with reduced user info
+  .put(verifyUserAuthenticated, isTicketOwnerOrAdmin(req => req.params.id), updateRequest)
+  .delete(verifyUserAuthenticated, isTicketOwnerOrAdmin(req => req.params.id), deleteRequest);
 
 export default router;

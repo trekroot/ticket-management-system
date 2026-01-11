@@ -1,5 +1,5 @@
 import express from 'express';
-import { verifyFirebaseToken } from '../middleware/auth.js';
+import { verifyUserAuthenticated } from '../middleware/auth.js';
 import { isAdmin } from '../middleware/authorize.js';
 import { createFeedback, getAllFeedback } from '../controllers/feedbackController.js';
 
@@ -13,7 +13,7 @@ const router = express.Router();
 */
 
 router.route('/')
-  .get(verifyFirebaseToken, isAdmin, getAllFeedback)
-  .post(verifyFirebaseToken, createFeedback);
+  .get(verifyUserAuthenticated, isAdmin, getAllFeedback)
+  .post(verifyUserAuthenticated, createFeedback);
 
 export default router;

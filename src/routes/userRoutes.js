@@ -1,5 +1,5 @@
 import express from 'express';
-import { verifyFirebaseToken, verifyFirebaseTokenOnly } from '../middleware/auth.js';
+import { verifyUserAuthenticated, verifyFirebaseAuth } from '../middleware/auth.js';
 import { isUserOwnerOrAdmin, isAdmin } from '../middleware/authorize.js';
 import {
     getUserById,
@@ -28,29 +28,29 @@ const router = express.Router();
 
 
 router.route('/firebase/:firebaseUid')
-    .get(verifyFirebaseToken, getUserByFirebaseId);
+    .get(verifyUserAuthenticated, getUserByFirebaseId);
 
 router.route('/verifyAccount/:firebaseUid')
-    .get(verifyFirebaseTokenOnly, verifyUserExists);
+    .get(verifyFirebaseAuth, verifyUserExists);
 
 router.route('/')
-    .get(verifyFirebaseToken, isAdmin, getAllUsers)
+    .get(verifyUserAuthenticated, isAdmin, getAllUsers)
     .post(createUser);  // Registration - no auth required
 
 // Parameter routes with suffixes
 router.route('/:id/deactivate')
-    .put(verifyFirebaseToken, isUserOwnerOrAdmin(req => req.params.id), deactivateUser);
+    .put(verifyUserAuthenticated, isUserOwnerOrAdmin(req => req.params.id), deactivateUser);
 
 router.route('/:id/public')
-    .get(verifyFirebaseToken, getUserPublicProfile);
+    .get(verifyUserAuthenticated, getUserPublicProfile);
 
 router.route('/:id/accept-tos')
-    .post(verifyFirebaseToken, isUserOwnerOrAdmin(req => req.params.id), acceptTermsOfService);
+    .post(verifyUserAuthenticated, isUserOwnerOrAdmin(req => req.params.id), acceptTermsOfService);
 
 // Plain parameter routes LAST
 router.route('/:id')
-    .get(verifyFirebaseToken, isUserOwnerOrAdmin(req => req.params.id), getUserById)
-    .put(verifyFirebaseToken, isUserOwnerOrAdmin(req => req.params.id), updateUser)
-    .delete(verifyFirebaseToken, isUserOwnerOrAdmin(req => req.params.id), deleteUser);
+    .get(verifyUserAuthenticated, isUserOwnerOrAdmin(req => req.params.id), getUserById)
+    .put(verifyUserAuthenticated, isUserOwnerOrAdmin(req => req.params.id), updateUser)
+    .delete(verifyUserAuthenticated, isUserOwnerOrAdmin(req => req.params.id), deleteUser);
 
 export default router;
