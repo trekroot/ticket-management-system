@@ -155,12 +155,14 @@ export async function acceptMatch(matchId, userId) {
     ]);
 
     // Notify the OTHER user (not the one who performed the action)
-    const populatedInitiatorTicket = await TicketRequest.findById(match.initiatorTicketId._id).populate('gameId');
     const actorIsInitiator = initiatorUser._id.toString() === userId.toString();
     const recipientUser = actorIsInitiator ? matchedUser : initiatorUser;
     const actorUser = actorIsInitiator ? initiatorUser : matchedUser;
+    // Pass the RECIPIENT's ticket, not the actor's
+    const recipientTicketId = actorIsInitiator ? match.matchedTicketId._id : match.initiatorTicketId._id;
+    const recipientTicket = await TicketRequest.findById(recipientTicketId).populate('gameId');
 
-    sendMatchAcceptedNotification(recipientUser, actorUser, populatedInitiatorTicket).catch(err =>
+    sendMatchAcceptedNotification(recipientUser, actorUser, recipientTicket).catch(err =>
       console.error('[MatchService] Notification error:', err.message)
     );
 
@@ -222,7 +224,7 @@ export async function cancelMatch(matchId, userId, reason = '') {
     // Send notification to both users (fire-and-forget)
     // Populate gameId for email content
     await match.populate('initiatorTicketId.gameId');
-    sendMatchCancelledNotification(match, reason).catch(err =>
+    sendMatchCancelledNotification(match, reason, userId).catch(err =>
       console.error('[MatchService] Notification error:', err.message)
     );
 
@@ -276,7 +278,7 @@ export async function completeMatch(matchId, userId) {
     // Send notification to both users (fire-and-forget)
     // Populate gameId for email content
     await match.populate('initiatorTicketId.gameId');
-    sendMatchCompletedNotification(match).catch(err =>
+    sendMatchCompletedNotification(match, userId).catch(err =>
       console.error('[MatchService] Notification error:', err.message)
     );
 
@@ -536,6 +538,11 @@ export async function initiateDirectMatch(targetTicketId, userId, reason = '') {
 
     // Update target ticket to matched (has incoming match request)
     await TicketRequest.findByIdAndUpdate(targetTicketId, { status: 'matched' });
+
+    // Notify target user (fire-and-forget)
+    sendMatchInitiatedNotification(targetTicket, user).catch(err =>
+      console.error('[MatchService] Notification error:', err.message)
+    );
 
     return { success: true, match, createdTicket };
   } catch (error) {

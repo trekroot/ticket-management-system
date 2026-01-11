@@ -20,15 +20,15 @@ const router = express.Router();
 router.use(verifyUserAuthenticated);
 
 router.route('/')
-  .get(getNotifications);
+  .get(verifyUserAuthenticated, getNotifications);
 
 router.route('/unread-count')
-  .get(getUnreadCount);
+  .get(verifyUserAuthenticated, getUnreadCount);
 
 router.route('/read-all')
-  .put(markAllAsRead);
+  .put(verifyUserAuthenticated, markAllAsRead);
 
 router.route('/:id/read')
-  .put(markAsRead);
+  .put(verifyUserAuthenticated, markAsRead);
 
 export default router;

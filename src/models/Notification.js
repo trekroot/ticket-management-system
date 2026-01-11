@@ -10,11 +10,13 @@ const notificationSchema = new mongoose.Schema({
   title: { type: String, required: true },
   message: { type: String, required: true },
   read: { type: Boolean, default: false },
-  // Reference to related match for navigation
+  // References for navigation
   matchId: { type: mongoose.Schema.Types.ObjectId, ref: 'Match' },
+  ticketId: { type: mongoose.Schema.Types.ObjectId, ref: 'TicketRequest' },
   // Who triggered this notification (for display)
   fromUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   fromUserName: { type: String },
+  actionable: { type: Boolean, default: true },
   // Auto-delete after 30 days
   expiresAt: {
     type: Date,
