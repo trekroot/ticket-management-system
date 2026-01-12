@@ -15,6 +15,8 @@ const notificationSchema = new mongoose.Schema({
   // Who triggered this notification (for display)
   fromUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   fromUserName: { type: String },
+  ticketId: { type: String },
+  actionable: { type: Boolean, default: true },
   // Auto-delete after 30 days
   expiresAt: {
     type: Date,

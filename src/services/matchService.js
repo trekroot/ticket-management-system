@@ -222,7 +222,7 @@ export async function cancelMatch(matchId, userId, reason = '') {
     // Send notification to both users (fire-and-forget)
     // Populate gameId for email content
     await match.populate('initiatorTicketId.gameId');
-    sendMatchCancelledNotification(match, reason).catch(err =>
+    sendMatchCancelledNotification(match, userId, reason).catch(err =>
       console.error('[MatchService] Notification error:', err.message)
     );
 
@@ -276,7 +276,7 @@ export async function completeMatch(matchId, userId) {
     // Send notification to both users (fire-and-forget)
     // Populate gameId for email content
     await match.populate('initiatorTicketId.gameId');
-    sendMatchCompletedNotification(match).catch(err =>
+    sendMatchCompletedNotification(match, userId).catch(err =>
       console.error('[MatchService] Notification error:', err.message)
     );
 
@@ -536,6 +536,11 @@ export async function initiateDirectMatch(targetTicketId, userId, reason = '') {
 
     // Update target ticket to matched (has incoming match request)
     await TicketRequest.findByIdAndUpdate(targetTicketId, { status: 'matched' });
+
+    // Notify target user (fire-and-forget)
+    sendMatchInitiatedNotification(targetTicket, user, reason).catch(err =>
+      console.error('[MatchService] Notification error:', err.message)
+    );
 
     return { success: true, match, createdTicket };
   } catch (error) {
