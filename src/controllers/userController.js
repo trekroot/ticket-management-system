@@ -1,4 +1,5 @@
 import { TicketRequest } from '../models/TicketRequest.js';
+import Match from '../models/Match.js';
 import User from '../models/User.js';
 import { logAdminAction } from '../services/adminAuditService.js';
 
@@ -219,6 +220,61 @@ export const updateUser = async (req, res) => {
           notes: req.body.adminNotes
         });
       }
+    }
+
+    // Cascade snapshot updates to user's non-completed tickets (best effort)
+    // This keeps active ticket info in sync with current profile
+    try {
+      const snapshotFields = ['discordHandle', 'username', 'firstName', 'lastName'];
+      const hasSnapshotChanges = snapshotFields.some(
+        field => req.body[field] !== undefined && req.body[field] !== userBefore?.[field]
+      );
+
+      if (hasSnapshotChanges) {
+        const newSnapshot = {
+          discordHandle: user.discordHandle,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName
+        };
+
+        // Update userSnapshot on user's own active tickets
+        await TicketRequest.updateMany(
+          { userId: req.params.id, status: { $in: ['open', 'matched'] } },
+          { userSnapshot: newSnapshot }
+        );
+
+        // Update counterpartySnapshot on matched tickets where this user is the counterparty
+        // Only for accepted matches (counterpartySnapshot is set at acceptance)
+        const userTickets = await TicketRequest.find({ userId: req.params.id }).select('_id');
+        const userTicketIds = userTickets.map(t => t._id);
+
+        // Find accepted matches involving this user's tickets
+        const activeMatches = await Match.find({
+          status: 'accepted',
+          $or: [
+            { initiatorTicketId: { $in: userTicketIds } },
+            { matchedTicketId: { $in: userTicketIds } }
+          ]
+        });
+
+        // For each match, update counterpartySnapshot on the OTHER ticket
+        const counterpartySnapshot = {
+          ...newSnapshot,
+          email: user.email
+        };
+
+        await Promise.all(activeMatches.map(match => {
+          const isInitiator = userTicketIds.some(id => id.equals(match.initiatorTicketId));
+          const otherTicketId = isInitiator ? match.matchedTicketId : match.initiatorTicketId;
+
+          return TicketRequest.findByIdAndUpdate(otherTicketId, {
+            counterpartySnapshot
+          });
+        }));
+      }
+    } catch (cascadeError) {
+      console.error('Failed to cascade snapshot updates:', cascadeError.message);
     }
 
     res.json({
