@@ -54,6 +54,14 @@ function formatGameInfo(ticket) {
 }
 
 /**
+ * Get ticket type for display
+ */
+function getTicketType(ticket) {
+  const type = ticket.__t || ticket.constructor?.modelName || 'Ticket';
+  return type.replace('Request', '');
+}
+
+/**
  * Get user's display name
  */
 function getUserDisplayName(user) {
@@ -272,7 +280,7 @@ export async function sendMatchCancelledNotification(match, actingUserId, reason
         userId: match.initiatorTicketId.userId,
         type: 'match_cancelled',
         title: 'Match Cancelled',
-        message,
+        message: cancelledMessage,
         matchId: match._id,
         fromUserName: 'System',
         ticketId: match.initiatorTicketId._id,
@@ -286,7 +294,7 @@ export async function sendMatchCancelledNotification(match, actingUserId, reason
         userId: match.matchedTicketId.userId,
         type: 'match_cancelled',
         title: 'Match Cancelled',
-        message,
+        message: cancelledMessage,
         matchId: match._id,
         fromUserName: 'System',
         ticketId: match.matchedTicketId._id
@@ -391,7 +399,7 @@ export async function sendMatchCompletedNotification(match, actingUserId) {
         userId: match.matchedTicketId.userId,
         type: 'match_completed',
         title: 'Exchange Complete!',
-        message,
+        message: completedMessage,
         matchId: match._id,
         ticketId: match.matchedTicketId._id,
         fromUserName: getUserDisplayName(initiatorUser)

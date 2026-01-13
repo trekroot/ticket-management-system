@@ -1,5 +1,6 @@
 /**
  * Email templates for match notifications
+ * TODO: MatchId passed in // might need to use ticketId for /matches/{ticketId} redirect
  */
 
 const defaultUrl = 'https://www.dirigounion.com/ticket-exchange';
