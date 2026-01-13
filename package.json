@@ -1,6 +1,6 @@
 {
   "name": "ticket-management-system",
-  "version": "0.9.6-alpha",
+  "version": "0.9.10-alpha",
   "description": "Ticket management system for Hearts of Pine",
   "main": "server.js",
   "type": "module",
@@ -29,8 +29,7 @@
     "express": "^5.2.1",
     "firebase-admin": "^13.6.0",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.0.0",
-    "resend": "^6.7.0"
+    "mongoose": "^9.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",

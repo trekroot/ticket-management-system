@@ -155,12 +155,14 @@ export async function acceptMatch(matchId, userId) {
     ]);
 
     // Notify the OTHER user (not the one who performed the action)
-    const populatedInitiatorTicket = await TicketRequest.findById(match.initiatorTicketId._id).populate('gameId');
     const actorIsInitiator = initiatorUser._id.toString() === userId.toString();
     const recipientUser = actorIsInitiator ? matchedUser : initiatorUser;
     const actorUser = actorIsInitiator ? initiatorUser : matchedUser;
+    // Pass the RECIPIENT's ticket, not the actor's
+    const recipientTicketId = actorIsInitiator ? match.matchedTicketId._id : match.initiatorTicketId._id;
+    const recipientTicket = await TicketRequest.findById(recipientTicketId).populate('gameId');
 
-    sendMatchAcceptedNotification(recipientUser, actorUser, populatedInitiatorTicket).catch(err =>
+    sendMatchAcceptedNotification(recipientUser, actorUser, recipientTicket).catch(err =>
       console.error('[MatchService] Notification error:', err.message)
     );
 

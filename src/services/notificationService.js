@@ -11,14 +11,14 @@ import {
 /**
  * Notification Service
  *
- * Sends email notifications and creates in-app notifications for match lifecycle events.
+ * Creates in-app notifications for match lifecycle events.
  * All functions are fire-and-forget safe (catch errors internally).
  */
 
 /**
  * Create an in-app notification (bell icon)
  */
-async function createInAppNotification({ userId, type, title, message, matchId, fromUserId, fromUserName, ticketId, actionable }) {
+async function createInAppNotification({ userId, type, title, message, matchId, ticketId, fromUserId, fromUserName, actionable }) {
   try {
     await Notification.create({
       userId,
@@ -26,9 +26,9 @@ async function createInAppNotification({ userId, type, title, message, matchId, 
       title,
       message,
       matchId,
+      ticketId,
       fromUserId,
       fromUserName,
-      ticketId,
       actionable
     });
     console.log(`[Notification] In-app notification created for user ${userId}: ${type}`);
@@ -38,7 +38,7 @@ async function createInAppNotification({ userId, type, title, message, matchId, 
 }
 
 /**
- * Format game info for display in emails
+ * Format game info for display
  */
 function formatGameInfo(ticket) {
   if (ticket.gameId?.opponent) {
@@ -54,14 +54,6 @@ function formatGameInfo(ticket) {
 }
 
 /**
- * Get ticket type for display
- */
-function getTicketType(ticket) {
-  const type = ticket.__t || ticket.constructor?.modelName || 'Ticket';
-  return type.replace('Request', '');
-}
-
-/**
  * Get user's display name
  */
 function getUserDisplayName(user) {
@@ -72,7 +64,7 @@ function getUserDisplayName(user) {
 }
 
 /**
- * Get actor of the action
+ * Determine who performed the action
  */
 function getActorOfTicketUpdate(actingUserId, initiatorUserId, matchedUserId) {
     if (!actingUserId) return 'admin';
@@ -84,7 +76,7 @@ function getActorOfTicketUpdate(actingUserId, initiatorUserId, matchedUserId) {
 }
 
 /**
- * Send notification when a match is initiated
+ * Notify when a match is initiated
  * Notifies the matched user that someone wants to trade
  *
  * @param {Object} matchedTicket - The ticket that received the match request (populated with userId, gameId)
@@ -128,9 +120,9 @@ export async function sendMatchInitiatedNotification(matchedTicket, initiatorUse
       type: 'match_initiated',
       title: 'New Match Request',
       message: `${getUserDisplayName(initiatorUser)} wants to match with your ticket for ${formatGameInfo(matchedTicket)}`,
+      ticketId: matchedTicket._id,
       fromUserId: initiatorUser._id,
-      fromUserName: getUserDisplayName(initiatorUser),
-      ticketId: matchedTicket._id
+      fromUserName: getUserDisplayName(initiatorUser)
     });
   } catch (error) {
     console.error('[Notification] sendMatchInitiatedNotification error:', error.message);
@@ -188,9 +180,9 @@ export async function sendMatchAcceptedNotification(recipientUser, actingUser, t
       type: 'match_accepted',
       title: 'Match Accepted!',
       message: `${getUserDisplayName(actingUser)} accepted your match for ${gameInfo}`,
+      ticketId: ticket._id,
       fromUserId: actingUser._id,
-      fromUserName: getUserDisplayName(actingUser),
-      ticketId: ticket._id
+      fromUserName: getUserDisplayName(actingUser)
     });
   } catch (error) {
     console.error('[Notification] sendMatchAcceptedNotification error:', error.message);
@@ -280,7 +272,7 @@ export async function sendMatchCancelledNotification(match, actingUserId, reason
         userId: match.initiatorTicketId.userId,
         type: 'match_cancelled',
         title: 'Match Cancelled',
-        message: cancelledMessage,
+        message,
         matchId: match._id,
         fromUserName: 'System',
         ticketId: match.initiatorTicketId._id,
@@ -288,35 +280,32 @@ export async function sendMatchCancelledNotification(match, actingUserId, reason
       });
     }
 
+    // Notify matched user if they didn't cancel
     if (actor !== 'matched') {
       await createInAppNotification({
         userId: match.matchedTicketId.userId,
         type: 'match_cancelled',
         title: 'Match Cancelled',
-        message: cancelledMessage,
+        message,
         matchId: match._id,
         fromUserName: 'System',
         ticketId: match.matchedTicketId._id
       });
     }
-
   } catch (error) {
     console.error('[Notification] sendMatchCancelledNotification error:', error.message);
   }
 }
 
 /**
- * Send notification when a match is completed
- * Notifies both users
- *
- * @param {Object} match - The match object (populated with initiatorTicketId, matchedTicketId)
+ * Notify when a match is completed
+ * Notifies the user who didn't perform the action
  */
 export async function sendMatchCompletedNotification(match, actingUserId) {
   try {
-    // Get both users
     const [initiatorUser, matchedUser] = await Promise.all([
-      User.findById(match.initiatorTicketId.userId).select('email firstName lastName username discordHandle'),
-      User.findById(match.matchedTicketId.userId).select('email firstName lastName username discordHandle')
+      User.findById(match.initiatorTicketId.userId).select('firstName lastName username discordHandle'),
+      User.findById(match.matchedTicketId.userId).select('firstName lastName username discordHandle')
     ]);
 
     const gameInfo = formatGameInfo(match.initiatorTicketId);
@@ -391,20 +380,21 @@ export async function sendMatchCompletedNotification(match, actingUserId) {
         title: 'Exchange Complete!',
         message: completedMessage,
         matchId: match._id,
-        fromUserName: getUserDisplayName(matchedUser),
-        ticketId: match.initiatorTicketId._id
+        ticketId: match.initiatorTicketId._id,
+        fromUserName: getUserDisplayName(matchedUser)
       });
     }
 
+    // Notify matched user if they didn't complete
     if (actor !== 'matched') {
       await createInAppNotification({
         userId: match.matchedTicketId.userId,
         type: 'match_completed',
         title: 'Exchange Complete!',
-        message: completedMessage,
+        message,
         matchId: match._id,
-        fromUserName: getUserDisplayName(initiatorUser),
-        ticketId: match.matchedTicketId._id
+        ticketId: match.matchedTicketId._id,
+        fromUserName: getUserDisplayName(initiatorUser)
       });
     }
   } catch (error) {
