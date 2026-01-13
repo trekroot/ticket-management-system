@@ -1,5 +1,12 @@
+import resend, { EMAIL_FROM } from '../config/resend.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
+import {
+  matchInitiatedTemplate,
+  matchAcceptedTemplate,
+  matchCancelledTemplate,
+  matchCompletedTemplate
+} from '../templates/emails.js';
 
 /**
  * Notification Service
@@ -47,6 +54,14 @@ function formatGameInfo(ticket) {
 }
 
 /**
+ * Get ticket type for display
+ */
+function getTicketType(ticket) {
+  const type = ticket.__t || ticket.constructor?.modelName || 'Ticket';
+  return type.replace('Request', '');
+}
+
+/**
  * Get user's display name
  */
 function getUserDisplayName(user) {
@@ -59,21 +74,55 @@ function getUserDisplayName(user) {
 /**
  * Determine who performed the action
  */
-function getActor(actingUserId, initiatorUserId, matchedUserId) {
-  if (initiatorUserId?.toString() === actingUserId?.toString()) {
-    return 'initiator';
-  } else if (matchedUserId?.toString() === actingUserId?.toString()) {
-    return 'matched';
-  }
-  return 'admin';
+function getActorOfTicketUpdate(actingUserId, initiatorUserId, matchedUserId) {
+    if (!actingUserId) return 'admin';
+
+    const actingId = actingUserId.toString();
+    if (initiatorUserId?.toString() === actingId) return 'initiator';
+    if (matchedUserId?.toString() === actingId) return 'matched';
+    return 'admin';
 }
 
 /**
  * Notify when a match is initiated
  * Notifies the matched user that someone wants to trade
+ *
+ * @param {Object} matchedTicket - The ticket that received the match request (populated with userId, gameId)
+ * @param {Object} initiatorUser - User who initiated { firstName, lastName, username, discordHandle }
+ * @param {String} reason - note present if direct match
  */
-export async function sendMatchInitiatedNotification(matchedTicket, initiatorUser) {
+export async function sendMatchInitiatedNotification(matchedTicket, initiatorUser, reason) {
   try {
+    // Get matched user's email
+    const matchedUser = await User.findById(matchedTicket.userId).select('email firstName');
+
+    // Send email if user has email address
+    if (matchedUser?.email) {
+      const template = matchInitiatedTemplate({
+        recipientFirstName: matchedUser.firstName,
+        initiatorName: getUserDisplayName(initiatorUser),
+        ticketType: getTicketType(matchedTicket),
+        gameInfo: formatGameInfo(matchedTicket),
+        reason
+      });
+
+      const { data, error } = await resend.emails.send({
+        from: EMAIL_FROM || 'noreply@ticketexchange.me',
+        to: matchedUser.email,
+        subject: template.subject,
+        html: template.html
+      });
+
+      if (error) {
+        console.error('[Notification] Match initiated email failed:', error);
+      } else {
+        console.log('[Notification] Match initiated email sent:', data?.id);
+      }
+    } else {
+      console.log('[Notification] No email for matched user, skipping Initiated email to: ', matchedUser._id);
+    }
+
+    // Create in-app notification
     await createInAppNotification({
       userId: matchedTicket.userId,
       type: 'match_initiated',
@@ -89,21 +138,59 @@ export async function sendMatchInitiatedNotification(matchedTicket, initiatorUse
 }
 
 /**
- * Notify when a match is accepted
- * Only notifies the recipient (the actor already knows)
+ * Send notification when a match is accepted
+ * Only notifies the recipient (the actor who accepted already knows)
+ *
+ * @param {Object} recipientUser - User to notify { _id, email, firstName, lastName, username, discordHandle }
+ * @param {Object} actingUser - User who performed the action (for counterparty info)
+ * @param {Object} ticket - Ticket for game info
  */
-export async function sendMatchAcceptedNotification(recipientUser, actorUser, ticket) {
+export async function sendMatchAcceptedNotification(recipientUser, actingUser, ticket) {
   try {
     const gameInfo = formatGameInfo(ticket);
 
+    const ticketType = getTicketType(ticket);
+
+    // Email to recipient only (they get actor's contact info)
+    if (recipientUser.email) {
+      try {
+        const template = matchAcceptedTemplate({
+          recipientFirstName: recipientUser.firstName,
+          counterpartyName: getUserDisplayName(actingUser),
+          counterpartyEmail: actingUser.email,
+          counterpartyDiscord: actingUser.discordHandle,
+          ticketType,
+          gameInfo
+        });
+
+        const { data, error } = await resend.emails.send({
+          from: EMAIL_FROM,
+          to: recipientUser.email,
+          subject: template.subject,
+          html: template.html
+        });
+
+        if (error) {
+          console.error('[Notification] Match accepted email failed:', error);
+        } else {
+          console.log('[Notification] Match accepted email sent:', data?.id);
+        }
+      } catch (error) {
+        console.error('[Notification] Error sending match accepted email:', error.message);
+      }
+    } else {
+      console.log('[Notification] No email for recipient user, skipping Match Accepted email to: ', recipientUser._id);
+    }
+
+    // In-app notification to recipient only
     await createInAppNotification({
       userId: recipientUser._id,
       type: 'match_accepted',
       title: 'Match Accepted!',
-      message: `${getUserDisplayName(actorUser)} accepted your match for ${gameInfo}`,
+      message: `${getUserDisplayName(actingUser)} accepted your match for ${gameInfo}`,
       ticketId: ticket._id,
-      fromUserId: actorUser._id,
-      fromUserName: getUserDisplayName(actorUser)
+      fromUserId: actingUser._id,
+      fromUserName: getUserDisplayName(actingUser)
     });
   } catch (error) {
     console.error('[Notification] sendMatchAcceptedNotification error:', error.message);
@@ -111,25 +198,92 @@ export async function sendMatchAcceptedNotification(recipientUser, actorUser, ti
 }
 
 /**
- * Notify when a match is cancelled
- * Notifies the user who didn't perform the action
+ * Send notification when a match is cancelled
+ * Notifies both users
+ *
+ * @param {Object} match - The match object (populated with initiatorTicketId, matchedTicketId)
+ * @param {String} userId taking current action
+ * @param {String} reason - Cancellation reason
  */
-export async function sendMatchCancelledNotification(match, reason, actingUserId) {
+export async function sendMatchCancelledNotification(match, actingUserId, reason) {
   try {
     const gameInfo = formatGameInfo(match.initiatorTicketId);
-    const actor = getActor(actingUserId, match.initiatorTicketId.userId, match.matchedTicketId.userId);
-    const message = `Your match for ${gameInfo} has been cancelled${reason ? `: "${reason}"` : ''}`;
+    // Get both users
+    const [initiatorUser, matchedUser] = await Promise.all([
+        User.findById(match.initiatorTicketId.userId).select('email firstName lastName username discordHandle'),
+        User.findById(match.matchedTicketId.userId).select('email firstName lastName username discordHandle')
+      ]);
+    const actor = getActorOfTicketUpdate(actingUserId, match.initiatorTicketId.userId, match.matchedTicketId.userId);
 
-    // Notify initiator if they didn't cancel
+    // Email to initiator if not the actor
+    if (initiatorUser?.email && actor !== 'initiator') {
+      try {
+        const template = matchCancelledTemplate({
+          recipientFirstName: initiatorUser.firstName,
+          otherPartyName: getUserDisplayName(matchedUser),
+          reason,
+          gameInfo
+        });
+
+        const { data, error } = await resend.emails.send({
+          from: EMAIL_FROM,
+          to: initiatorUser.email,
+          subject: template.subject,
+          html: template.html
+        });
+
+        if (error) {
+          console.error('[Notification] Match cancelled email to initiator failed:', error);
+        } else {
+          console.log('[Notification] Match cancelled email sent to initiator:', data?.id);
+        }
+      } catch (e) {
+        console.error('[Notification] Error sending cancel to initiator:', e.message);
+      }
+    } else if (!initiatorUser?.email && actor !== 'initiator') {
+      console.log('[Notification] No email for initiator user, skipping Cancelled email to: ', initiatorUser._id);
+    }
+
+    // Email to matched user if not actor
+    if (matchedUser?.email && actor !== 'matched') {
+      try {
+        const template = matchCancelledTemplate({
+          recipientFirstName: matchedUser.firstName,
+          otherPartyName: getUserDisplayName(initiatorUser),
+          reason,
+          gameInfo
+        });
+
+        const { data, error } = await resend.emails.send({
+          from: EMAIL_FROM,
+          to: matchedUser.email,
+          subject: template.subject,
+          html: template.html
+        });
+
+        if (error) {
+          console.error('[Notification] Match cancelled email to matched user failed:', error);
+        } else {
+          console.log('[Notification] Match cancelled email sent to matched user:', data?.id);
+        }
+      } catch (e) {
+        console.error('[Notification] Error sending cancel to matched:', e.message);
+      }
+    } else if (!matchedUser?.email && actor !== 'matched') {
+      console.log('[Notification] No email for matched user, skipping Cancelled email to: ', matchedUser._id);
+    }
+    const cancelledMessage = `Your match for ${gameInfo} has been cancelled${reason ? `: ${reason}` : ''}`;
+
+    // Create in-app notifications for the user not acting
     if (actor !== 'initiator') {
       await createInAppNotification({
         userId: match.initiatorTicketId.userId,
         type: 'match_cancelled',
         title: 'Match Cancelled',
-        message,
+        message: cancelledMessage,
         matchId: match._id,
-        ticketId: match.initiatorTicketId._id,
         fromUserName: 'System',
+        ticketId: match.initiatorTicketId._id,
         actionable: !match.initiatorTicketId.isDirectMatch // special case where initiator was direct match (ticket is DEACTIVATED)
       });
     }
@@ -140,10 +294,10 @@ export async function sendMatchCancelledNotification(match, reason, actingUserId
         userId: match.matchedTicketId.userId,
         type: 'match_cancelled',
         title: 'Match Cancelled',
-        message,
+        message: cancelledMessage,
         matchId: match._id,
-        ticketId: match.matchedTicketId._id,
-        fromUserName: 'System'
+        fromUserName: 'System',
+        ticketId: match.matchedTicketId._id
       });
     }
   } catch (error) {
@@ -163,16 +317,76 @@ export async function sendMatchCompletedNotification(match, actingUserId) {
     ]);
 
     const gameInfo = formatGameInfo(match.initiatorTicketId);
-    const actor = getActor(actingUserId, match.initiatorTicketId.userId, match.matchedTicketId.userId);
-    const message = `Your exchange for ${gameInfo} has been completed`;
+    const ticketType = getTicketType(match.initiatorTicketId);
+    const actor = getActorOfTicketUpdate(actingUserId, match.initiatorTicketId.userId, match.matchedTicketId.userId);
 
-    // Notify initiator if they didn't complete
+    // Email to initiator
+    if (initiatorUser?.email && actor !== 'initiator') {
+      try {
+        const template = matchCompletedTemplate({
+          recipientFirstName: initiatorUser.firstName,
+          otherPartyName: getUserDisplayName(matchedUser),
+          ticketType,
+          gameInfo
+        });
+
+        const { data, error } = await resend.emails.send({
+          from: EMAIL_FROM,
+          to: initiatorUser.email,
+          subject: template.subject,
+          html: template.html
+        });
+
+        if (error) {
+          console.error('[Notification] Match completed email to initiator failed:', error);
+        } else {
+          console.log('[Notification] Match completed email sent to initiator:', data?.id);
+        }
+      } catch (e) {
+        console.error('[Notification] Error sending complete to initiator:', e.message);
+      }
+    } else if (!initiatorUser?.email && actor !== 'initiator') {
+      console.log('[Notification] No email for initiator user, skipping Completed email to: ', initiatorUser._id);
+    }
+
+    // Email to matched user
+    if (matchedUser?.email && actor !== 'matched') {
+      try {
+        const template = matchCompletedTemplate({
+          recipientFirstName: matchedUser.firstName,
+          otherPartyName: getUserDisplayName(initiatorUser),
+          ticketType,
+          gameInfo
+        });
+
+        const { data, error } = await resend.emails.send({
+          from: EMAIL_FROM,
+          to: matchedUser.email,
+          subject: template.subject,
+          html: template.html
+        });
+
+        if (error) {
+          console.error('[Notification] Match completed email to matched user failed:', error);
+        } else {
+          console.log('[Notification] Match completed email sent to matched user:', data?.id);
+        }
+      } catch (e) {
+        console.error('[Notification] Error sending complete to matched:', e.message);
+      }
+    } else if (!matchedUser?.email && actor !== 'matched') {
+      console.log('[Notification] No email for matched user, skipping Completed email to: ', matchedUser._id);
+    }
+
+    const completedMessage = `Your exchange for ${gameInfo} has been completed`;
+
+    // Create in-app notifications for user not acting
     if (actor !== 'initiator') {
       await createInAppNotification({
         userId: match.initiatorTicketId.userId,
         type: 'match_completed',
         title: 'Exchange Complete!',
-        message,
+        message: completedMessage,
         matchId: match._id,
         ticketId: match.initiatorTicketId._id,
         fromUserName: getUserDisplayName(matchedUser)
@@ -185,7 +399,7 @@ export async function sendMatchCompletedNotification(match, actingUserId) {
         userId: match.matchedTicketId.userId,
         type: 'match_completed',
         title: 'Exchange Complete!',
-        message,
+        message: completedMessage,
         matchId: match._id,
         ticketId: match.matchedTicketId._id,
         fromUserName: getUserDisplayName(initiatorUser)
