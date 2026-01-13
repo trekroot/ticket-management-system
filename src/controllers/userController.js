@@ -18,7 +18,7 @@ import { logAdminAction } from '../services/adminAuditService.js';
  */
 const USER_FIELDS = {
   // Full profile - for user viewing their own account
-  private: 'username firstName lastName email discordHandle authProvider role createdAt termsAccepted',
+  private: 'username firstName lastName email discordHandle authProvider role createdAt termsAccepted settings',
 
   // Public profile - for matched users to see each other
   public: 'firstName lastName discordHandle'
@@ -161,6 +161,46 @@ export const createUser = async (req, res) => {
       return res.status(400).json({
         success: false,
         error: 'Username or email already exists'
+      });
+    }
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+/**
+ * PUT /api/users/:id/settings
+ * Update an existing user's settings (only settings field)
+ */
+export const updateUserSettings = async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { settings: req.body.settings },
+      {
+        new: true,
+        runValidators: true
+      }
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: user.settings
+    });
+  } catch (error) {
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid user ID format'
       });
     }
     res.status(500).json({
