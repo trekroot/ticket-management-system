@@ -6,6 +6,7 @@ import {
     getAllUsers,
     createUser,
     updateUser,
+    updateUserSettings,
     deleteUser,
     getUserPublicProfile,
     deactivateUser,
@@ -46,6 +47,9 @@ router.route('/:id/public')
 
 router.route('/:id/accept-tos')
     .post(verifyUserAuthenticated, isUserOwnerOrAdmin(req => req.params.id), acceptTermsOfService);
+
+router.route('/:id/settings')
+    .put(verifyUserAuthenticated, isUserOwnerOrAdmin(req => req.params.id), updateUserSettings);
 
 // Plain parameter routes LAST
 router.route('/:id')

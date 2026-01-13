@@ -15,6 +15,15 @@ const userSchema = new mongoose.Schema({
   // Soft delete - deactivated accounts
   deactivated: { type: Boolean, default: false },
   deactivatedAt: { type: Date },
+  // User settings/preferences
+  settings: {
+    email: {
+      matchInitiated: { type: Boolean, default: true },
+      matchAccepted: { type: Boolean, default: true },
+      matchCancelled: { type: Boolean, default: true },
+      matchCompleted: { type: Boolean, default: true }
+    }
+  }
 }, {
   timestamps: true,
   collection: 'users',

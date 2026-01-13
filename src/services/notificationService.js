@@ -93,11 +93,11 @@ function getActorOfTicketUpdate(actingUserId, initiatorUserId, matchedUserId) {
  */
 export async function sendMatchInitiatedNotification(matchedTicket, initiatorUser, reason) {
   try {
-    // Get matched user's email
-    const matchedUser = await User.findById(matchedTicket.userId).select('email firstName');
+    // Get matched user's email and settings
+    const matchedUser = await User.findById(matchedTicket.userId).select('email firstName settings');
 
-    // Send email if user has email address
-    if (matchedUser?.email) {
+    // Send email if user has email address and hasn't disabled this notification type
+    if (matchedUser?.email && matchedUser.settings?.email?.matchInitiated) {
       const template = matchInitiatedTemplate({
         recipientFirstName: matchedUser.firstName,
         initiatorName: getUserDisplayName(initiatorUser),
@@ -118,8 +118,8 @@ export async function sendMatchInitiatedNotification(matchedTicket, initiatorUse
       } else {
         console.log('[Notification] Match initiated email sent:', data?.id);
       }
-    } else {
-      console.log('[Notification] No email for matched user, skipping Initiated email to: ', matchedUser._id);
+    } else if (!matchedUser?.email) {
+      console.log('[Notification] No email for matched user, skipping Initiated email to:', matchedUser?._id);
     }
 
     // Create in-app notification
@@ -152,7 +152,7 @@ export async function sendMatchAcceptedNotification(recipientUser, actingUser, t
     const ticketType = getTicketType(ticket);
 
     // Email to recipient only (they get actor's contact info)
-    if (recipientUser.email) {
+    if (recipientUser.email && recipientUser.settings?.email?.matchAccepted) {
       try {
         const template = matchAcceptedTemplate({
           recipientFirstName: recipientUser.firstName,
@@ -178,8 +178,8 @@ export async function sendMatchAcceptedNotification(recipientUser, actingUser, t
       } catch (error) {
         console.error('[Notification] Error sending match accepted email:', error.message);
       }
-    } else {
-      console.log('[Notification] No email for recipient user, skipping Match Accepted email to: ', recipientUser._id);
+    } else if (!recipientUser.email) {
+      console.log('[Notification] No email for recipient user, skipping Match Accepted email to:', recipientUser._id);
     }
 
     // In-app notification to recipient only
@@ -208,15 +208,15 @@ export async function sendMatchAcceptedNotification(recipientUser, actingUser, t
 export async function sendMatchCancelledNotification(match, actingUserId, reason) {
   try {
     const gameInfo = formatGameInfo(match.initiatorTicketId);
-    // Get both users
+    // Get both users with settings
     const [initiatorUser, matchedUser] = await Promise.all([
-        User.findById(match.initiatorTicketId.userId).select('email firstName lastName username discordHandle'),
-        User.findById(match.matchedTicketId.userId).select('email firstName lastName username discordHandle')
+        User.findById(match.initiatorTicketId.userId).select('email firstName lastName username discordHandle settings'),
+        User.findById(match.matchedTicketId.userId).select('email firstName lastName username discordHandle settings')
       ]);
     const actor = getActorOfTicketUpdate(actingUserId, match.initiatorTicketId.userId, match.matchedTicketId.userId);
 
-    // Email to initiator if not the actor
-    if (initiatorUser?.email && actor !== 'initiator') {
+    // Email to initiator if not the actor and hasn't disabled this notification type
+    if (initiatorUser?.email && actor !== 'initiator' && initiatorUser.settings?.email?.matchCancelled) {
       try {
         const template = matchCancelledTemplate({
           recipientFirstName: initiatorUser.firstName,
@@ -244,8 +244,8 @@ export async function sendMatchCancelledNotification(match, actingUserId, reason
       console.log('[Notification] No email for initiator user, skipping Cancelled email to: ', initiatorUser._id);
     }
 
-    // Email to matched user if not actor
-    if (matchedUser?.email && actor !== 'matched') {
+    // Email to matched user if not actor and hasn't disabled this notification type
+    if (matchedUser?.email && actor !== 'matched' && matchedUser.settings?.email?.matchCancelled) {
       try {
         const template = matchCancelledTemplate({
           recipientFirstName: matchedUser.firstName,
@@ -311,17 +311,18 @@ export async function sendMatchCancelledNotification(match, actingUserId, reason
  */
 export async function sendMatchCompletedNotification(match, actingUserId) {
   try {
+    // Get both users with email and settings
     const [initiatorUser, matchedUser] = await Promise.all([
-      User.findById(match.initiatorTicketId.userId).select('firstName lastName username discordHandle'),
-      User.findById(match.matchedTicketId.userId).select('firstName lastName username discordHandle')
+      User.findById(match.initiatorTicketId.userId).select('email firstName lastName username discordHandle settings'),
+      User.findById(match.matchedTicketId.userId).select('email firstName lastName username discordHandle settings')
     ]);
 
     const gameInfo = formatGameInfo(match.initiatorTicketId);
     const ticketType = getTicketType(match.initiatorTicketId);
     const actor = getActorOfTicketUpdate(actingUserId, match.initiatorTicketId.userId, match.matchedTicketId.userId);
 
-    // Email to initiator
-    if (initiatorUser?.email && actor !== 'initiator') {
+    // Email to initiator if not actor and hasn't disabled this notification type
+    if (initiatorUser?.email && actor !== 'initiator' && initiatorUser.settings?.email?.matchCompleted) {
       try {
         const template = matchCompletedTemplate({
           recipientFirstName: initiatorUser.firstName,
@@ -349,8 +350,8 @@ export async function sendMatchCompletedNotification(match, actingUserId) {
       console.log('[Notification] No email for initiator user, skipping Completed email to: ', initiatorUser._id);
     }
 
-    // Email to matched user
-    if (matchedUser?.email && actor !== 'matched') {
+    // Email to matched user if not actor and hasn't disabled this notification type
+    if (matchedUser?.email && actor !== 'matched' && matchedUser.settings?.email?.matchCompleted) {
       try {
         const template = matchCompletedTemplate({
           recipientFirstName: matchedUser.firstName,
