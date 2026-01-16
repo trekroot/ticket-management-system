@@ -39,24 +39,37 @@ export const users = [
 ];
 
 export const games = [
-  { _id: '6941fb6bbdc613cbcf74d7e8', opponent: 'One Knoxville SC', date: new Date('2026-04-11T22:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: true },
-  { _id: '6941fb6bbdc613cbcf74d7e9', opponent: 'FC Naples', date: new Date('2026-04-19T22:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: true },
-  { _id: '6941fb6bbdc613cbcf74d7ea', opponent: 'New York Cosmos', date: new Date('2026-05-02T22:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: true },
-  { _id: '6941fb6bbdc613cbcf74d7eb', opponent: 'Rhode Island FC', date: new Date('2026-05-16T22:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL Prinx Tires Cup', isHomeGame: true, tbdTime: true },
-  { _id: '6941fb6bbdc613cbcf74d7ec', opponent: 'Greenville Triumph SC', date: new Date('2026-05-23T22:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: true },
-  { _id: '6941fb6bbdc613cbcf74d7ed', opponent: 'Spokane Velocity FC', date: new Date('2026-05-30T22:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: true },
-  { _id: '6941fb6bbdc613cbcf74d7ee', opponent: 'Chattanooga Red Wolves SC', date: new Date('2026-06-13T22:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: true },
-  { _id: '6941fb6bbdc613cbcf74d7ef', opponent: 'Richmond Kickers', date: new Date('2026-06-24T22:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: true },
-  { _id: '6941fb6bbdc613cbcf74d7f0', opponent: 'New York Cosmos', date: new Date('2026-07-11T22:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL Prinx Tires Cup', isHomeGame: true, tbdTime: true },
-  { _id: '6941fb6bbdc613cbcf74d7f1', opponent: 'Union Omaha', date: new Date('2026-07-22T22:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: true },
-  { _id: '6941fb6bbdc613cbcf74d7f2', opponent: 'Sarasota Paradise', date: new Date('2026-07-26T22:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: true },
-  { _id: '6941fb6bbdc613cbcf74d7f3', opponent: 'TBD', date: new Date('2026-08-05T22:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'Friendly', isHomeGame: true, tbdTime: true },
-  { _id: '6941fb6bbdc613cbcf74d7f4', opponent: 'Corpus Christi FC', date: new Date('2026-08-08T22:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: true },
-  { _id: '6941fb6bbdc613cbcf74d7f5', opponent: 'Forward Madison FC', date: new Date('2026-08-16T22:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: true },
-  { _id: '6941fb6bbdc613cbcf74d7f6', opponent: 'Fort Wayne FC', date: new Date('2026-08-29T22:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: true },
-  { _id: '6941fb6bbdc613cbcf74d7f7', opponent: 'Westchester SC', date: new Date('2026-09-06T22:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: true },
-  { _id: '6941fb6bbdc613cbcf74d7f8', opponent: 'AV ALTA FC', date: new Date('2026-09-13T22:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: true },
-  { _id: '6941fb6bbdc613cbcf74d7f9', opponent: 'South Georgia Tormenta FC', date: new Date('2026-09-26T22:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: true },
-  { _id: '6941fb6bbdc613cbcf74d7fa', opponent: 'Athletic Club Boise', date: new Date('2026-10-10T22:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: true },
-  { _id: '6941fb6bbdc613cbcf74d7fb', opponent: 'Charlotte Independence', date: new Date('2026-10-24T22:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: true }
+  // April
+  { _id: '6941fb6bbdc613cbcf74d7e8', opponent: 'One Knoxville SC', date: new Date('2026-04-11T22:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: false },           // 6:00 PM ET
+  { _id: '6941fb6bbdc613cbcf74d7e9', opponent: 'FC Naples', date: new Date('2026-04-19T19:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: false },                 // 3:00 PM ET
+  
+  // May
+  { _id: '6941fb6bbdc613cbcf74d7ea', opponent: 'New York Cosmos', date: new Date('2026-05-02T21:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: false },           // 5:00 PM ET
+  { _id: '6941fb6bbdc613cbcf74d7eb', opponent: 'Rhode Island FC', date: new Date('2026-05-16T20:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL Prinx Tires Cup', isHomeGame: true, tbdTime: false },      // 4:00 PM ET
+  { _id: '6941fb6bbdc613cbcf74d7ec', opponent: 'Greenville Triumph SC', date: new Date('2026-05-23T22:30:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: false },     // 6:30 PM ET
+  { _id: '6941fb6bbdc613cbcf74d7ed', opponent: 'Spokane Velocity FC', date: new Date('2026-05-30T22:30:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: false },       // 6:30 PM ET
+  
+  // June
+  { _id: '6941fb6bbdc613cbcf74d7ee', opponent: 'Chattanooga Red Wolves SC', date: new Date('2026-06-13T22:30:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: false }, // 6:30 PM ET
+  { _id: '6941fb6bbdc613cbcf74d7ef', opponent: 'Richmond Kickers', date: new Date('2026-06-24T23:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: false },          // 7:00 PM ET
+  
+  // July
+  { _id: '6941fb6bbdc613cbcf74d7f0', opponent: 'New York Cosmos', date: new Date('2026-07-11T23:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL Prinx Tires Cup', isHomeGame: true, tbdTime: false },      // 7:00 PM ET
+  { _id: '6941fb6bbdc613cbcf74d7f1', opponent: 'Union Omaha', date: new Date('2026-07-22T23:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: false },               // 7:00 PM ET
+  { _id: '6941fb6bbdc613cbcf74d7f2', opponent: 'Sarasota Paradise', date: new Date('2026-07-26T23:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: false },         // 6:30 PM ET
+  
+  // August
+  { _id: '6941fb6bbdc613cbcf74d7f3', opponent: 'TBD', date: new Date('2026-08-05T23:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'Friendly', isHomeGame: true, tbdTime: true },                              // 7:00 PM ET
+  { _id: '6941fb6bbdc613cbcf74d7f4', opponent: 'Corpus Christi FC', date: new Date('2026-08-08T23:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: false },         // 7:00 PM ET
+  { _id: '6941fb6bbdc613cbcf74d7f5', opponent: 'Forward Madison FC', date: new Date('2026-08-16T22:30:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: false },        // 6:30 PM ET
+  { _id: '6941fb6bbdc613cbcf74d7f6', opponent: 'Fort Wayne FC', date: new Date('2026-08-29T23:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: false },             // 7:00 PM ET
+  
+  // September
+  { _id: '6941fb6bbdc613cbcf74d7f7', opponent: 'Westchester SC', date: new Date('2026-09-06T22:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: false },            // 6:00 PM ET
+  { _id: '6941fb6bbdc613cbcf74d7f8', opponent: 'AV ALTA FC', date: new Date('2026-09-13T22:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: false },                // 6:00 PM ET
+  { _id: '6941fb6bbdc613cbcf74d7f9', opponent: 'South Georgia Tormenta FC', date: new Date('2026-09-26T21:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: false }, // 5:00 PM ET
+  
+  // October
+  { _id: '6941fb6bbdc613cbcf74d7fa', opponent: 'Athletic Club Boise', date: new Date('2026-10-10T21:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: false },       // 5:00 PM ET
+  { _id: '6941fb6bbdc613cbcf74d7fb', opponent: 'Charlotte Independence', date: new Date('2026-10-24T21:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: false }     // 5:00 PM ET
 ];
