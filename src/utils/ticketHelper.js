@@ -36,15 +36,15 @@ const getIsOwnerFromTicketUserId = (ticket, userId) => {
 
 /**
  * Check if seats are adjacent
- * @param {Array} formData.seats - The array of seat numbers
- * @returns {boolean} Whether the seats are adjacent
+ * @param {Object} ticket - Ticket object with optional seats array
+ * @returns {boolean} Whether the seats are adjacent (true if no seats or empty)
  */
 export function seatsAreAdjacent(ticket) {
-  if (ticket.seats?.length < 1) return true;
-  return (() => {
-      const sorted = [...ticket.seats].sort((a, b) => a - b);
-      return sorted[sorted.length - 1] - sorted[0] + 1 === ticket.seats.length;
-    })()
+  // Handle null, undefined, or empty seats array
+  if (!ticket.seats?.length) return true;
+
+  const sorted = [...ticket.seats].sort((a, b) => a - b);
+  return sorted[sorted.length - 1] - sorted[0] + 1 === ticket.seats.length;
 }
 
 /**

@@ -206,10 +206,11 @@ export const createBuyRequest = async (req, res) => {
  * Create a new sell request
  *
  * Body: {
- *   gameId, sectionTypeOffered, section, row, seats, numTickets, ticketsTogether,
+ *   gameId, sectionTypeOffered, section, row, seats, numTickets,
  *   notes, minPrice, donatingFree
  * }
  * Note: userId comes from authenticated user (req.user), not request body
+ * Note: seatsAdjacent is computed from seats array, not from request body
  */
 export const createSellRequest = async (req, res) => {
   try {
@@ -217,6 +218,7 @@ export const createSellRequest = async (req, res) => {
     const sellRequest = await SellRequest.create({
       ...req.body,
       userId: req.user._id,
+      seatsAdjacent: seatsAreAdjacent(req.body),
       userSnapshot: {
         username: req.user.username,
         firstName: req.user.firstName,
@@ -252,9 +254,10 @@ export const createSellRequest = async (req, res) => {
  *
  * Body: {
  *   [gamesOffered], [gamesDesired], sectionTypeOffered, sectionTypeDesired, anySectionDesired,
- *   section, row, seats, numTickets, ticketsTogether, notes
+ *   section, row, seats, numTickets, requireTogether, notes
  * }
  * Note: userId comes from authenticated user (req.user), not request body
+ * Note: seatsAdjacent is computed from seats array, requireTogether comes from request body
  */
 export const createTradeRequest = async (req, res) => {
   try {
@@ -262,6 +265,7 @@ export const createTradeRequest = async (req, res) => {
     const tradeRequest = await TradeRequest.create({
       ...req.body,
       userId: req.user._id,
+      seatsAdjacent: seatsAreAdjacent(req.body),
       userSnapshot: {
         username: req.user.username,
         firstName: req.user.firstName,
@@ -322,12 +326,20 @@ export const updateRequest = async (req, res) => {
     // Get ticket before update for audit logging
     const ticketBefore = await TicketRequest.findById(req.params.id);
 
+    // Prepare update data
+    const updateData = { ...req.body };
+
+    // Recompute seatsAdjacent if seats are being updated on Sell/Trade requests
+    if (req.body.seats && (ticketBefore?.__t === 'SellRequest' || ticketBefore?.__t === 'TradeRequest')) {
+      updateData.seatsAdjacent = seatsAreAdjacent(req.body);
+    }
+
     // findByIdAndUpdate options:
     // - new: true returns the updated document (not the old one)
     // - runValidators: true ensures schema validation runs on update
     const request = await TicketRequest.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      updateData,
       { new: true, runValidators: true }
     )
       .populate('userId', 'discordHandle username firstName lastName email')
@@ -650,10 +662,16 @@ function calculateTradePairingScore(tradeA, tradeB) {
   score += qtyScore;
   reasons.push(qtyReason);
 
-  // D. Adjacency Match
-  if (seatsAreAdjacent(tradeA) == seatsAreAdjacent(tradeB)) {
+  // D. Adjacency Match - each side's offer must meet the other's requirement
+  const aOffersMeetsBNeeds = tradeA.seatsAdjacent || !tradeB.requireTogether;
+  const bOffersMeetsANeeds = tradeB.seatsAdjacent || !tradeA.requireTogether;
+
+  if (aOffersMeetsBNeeds && bOffersMeetsANeeds) {
     score += adjacencyValue;
-    reasons.push(`Adjacency needs met: ${seatsAreAdjacent(tradeA)} (+10)`);
+    reasons.push(`Adjacency needs met (+10)`);
+  } else if (aOffersMeetsBNeeds || bOffersMeetsANeeds) {
+    score += adjacencyValue / 2;
+    reasons.push(`Partial adjacency match (+5)`);
   } else {
     reasons.push('Seat adjacency preference mismatch (+0)');
   }
@@ -806,10 +824,10 @@ export function calculatePairingScore(saleTicket, requestTicket) {
     reasons.push('Price info incomplete (+0)');
   }
 
-  // E. Seat Adjacency
-  if (seatsAreAdjacent(saleTicket) == requestTicket.ticketsTogether) {
+  // E. Seat Adjacency - does seller's offer meet buyer's requirement?
+  if (saleTicket.seatsAdjacent || !requestTicket.requireTogether) {
     score += 10;
-    reasons.push(`Adjacency needs met: ${seatsAreAdjacent(saleTicket)} (+10)`);
+    reasons.push(`Adjacency needs met: seller adjacent=${saleTicket.seatsAdjacent}, buyer requires=${requestTicket.requireTogether} (+10)`);
   } else {
     reasons.push('Seat adjacency preference mismatch (+0)');
   }

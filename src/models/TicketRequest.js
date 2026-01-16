@@ -38,13 +38,6 @@ const ticketRequestSchema = new mongoose.Schema({
     }
   },
 
-  // Do the tickets need to be together (adjacent seats)?
-  // TODO: ignore ticketsTogether request if only 1 ticket
-  ticketsTogether: {
-    type: Boolean,
-    default: false
-  },
-
   // Free-form notes from the user
   notes: {
     type: String
@@ -139,6 +132,12 @@ const buyRequestSchema = new mongoose.Schema({
     min: 0
   },
 
+  // Does the buyer require adjacent seats?
+  requireTogether: {
+    type: Boolean,
+    default: false
+  },
+
   // Is this person a band member? (May get priority or special pricing)
   bandMember: {
     type: Boolean,
@@ -195,6 +194,12 @@ const sellRequestSchema = new mongoose.Schema({
     min: 0
   },
 
+  // Are the offered seats adjacent? (computed from seats array)
+  seatsAdjacent: {
+    type: Boolean,
+    default: true
+  },
+
   // Is this a free donation?
   donatingFree: {
     type: Boolean,
@@ -243,6 +248,18 @@ const tradeRequestSchema = new mongoose.Schema({
   fullSeasonTrade: {
     type: Boolean,
     default: false
+  },
+
+  // Does the trader require adjacent seats in return?
+  requireTogether: {
+    type: Boolean,
+    default: false
+  },
+
+  // Are the offered seats adjacent? (computed from seats array)
+  seatsAdjacent: {
+    type: Boolean,
+    default: true
   },
 
   // Games the user is offering (required, at least one)

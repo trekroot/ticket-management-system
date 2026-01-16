@@ -7,7 +7,7 @@ import {
   sendMatchInitiatedNotification,
   sendMatchAcceptedNotification,
   sendMatchCancelledNotification,
-  sendMatchCompletedNotification
+  sendExchangeCompletedNotification
 } from './notificationService.js';
 
 /**
@@ -278,7 +278,7 @@ export async function completeMatch(matchId, userId) {
     // Send notification to both users (fire-and-forget)
     // Populate gameId for email content
     await match.populate('initiatorTicketId.gameId');
-    sendMatchCompletedNotification(match, userId).catch(err =>
+    sendExchangeCompletedNotification(match, userId).catch(err =>
       console.error('[MatchService] Notification error:', err.message)
     );
 

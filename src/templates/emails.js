@@ -68,7 +68,7 @@ export const matchCancelledTemplate = ({ recipientFirstName, otherPartyName, rea
   }
 };
 
-export const matchCompletedTemplate = ({ recipientFirstName, otherPartyName, ticketType, gameInfo, matchId }) => {
+export const exchangeCompletedTemplate = ({ recipientFirstName, otherPartyName, ticketType, gameInfo, matchId }) => {
   // const url = matchId ? `https://www.dirigounion.com/ticket-exchange?matchId=${matchId}` : defaultUrl;
   return {
     subject: `Exchange Complete - ${gameInfo}`,
