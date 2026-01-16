@@ -21,7 +21,7 @@ const userSchema = new mongoose.Schema({
       matchInitiated: { type: Boolean, default: true },
       matchAccepted: { type: Boolean, default: true },
       matchCancelled: { type: Boolean, default: true },
-      matchCompleted: { type: Boolean, default: true }
+      exchangeCompleted: { type: Boolean, default: true }
     }
   }
 }, {

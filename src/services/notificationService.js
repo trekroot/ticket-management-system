@@ -5,7 +5,7 @@ import {
   matchInitiatedTemplate,
   matchAcceptedTemplate,
   matchCancelledTemplate,
-  matchCompletedTemplate
+  exchangeCompletedTemplate as exchangeCompletedTemplate
 } from '../templates/emails.js';
 
 /**
@@ -309,7 +309,7 @@ export async function sendMatchCancelledNotification(match, actingUserId, reason
  * Notify when a match is completed
  * Notifies the user who didn't perform the action
  */
-export async function sendMatchCompletedNotification(match, actingUserId) {
+export async function sendExchangeCompletedNotification(match, actingUserId) {
   try {
     // Get both users with email and settings
     const [initiatorUser, matchedUser] = await Promise.all([
@@ -322,9 +322,9 @@ export async function sendMatchCompletedNotification(match, actingUserId) {
     const actor = getActorOfTicketUpdate(actingUserId, match.initiatorTicketId.userId, match.matchedTicketId.userId);
 
     // Email to initiator if not actor and hasn't disabled this notification type
-    if (initiatorUser?.email && actor !== 'initiator' && initiatorUser.settings?.email?.matchCompleted) {
+    if (initiatorUser?.email && actor !== 'initiator' && initiatorUser.settings?.email?.exchangeCompleted) {
       try {
-        const template = matchCompletedTemplate({
+        const template = exchangeCompletedTemplate({
           recipientFirstName: initiatorUser.firstName,
           otherPartyName: getUserDisplayName(matchedUser),
           ticketType,
@@ -351,9 +351,9 @@ export async function sendMatchCompletedNotification(match, actingUserId) {
     }
 
     // Email to matched user if not actor and hasn't disabled this notification type
-    if (matchedUser?.email && actor !== 'matched' && matchedUser.settings?.email?.matchCompleted) {
+    if (matchedUser?.email && actor !== 'matched' && matchedUser.settings?.email?.exchangeCompleted) {
       try {
-        const template = matchCompletedTemplate({
+        const template = exchangeCompletedTemplate({
           recipientFirstName: matchedUser.firstName,
           otherPartyName: getUserDisplayName(initiatorUser),
           ticketType,
@@ -407,6 +407,6 @@ export async function sendMatchCompletedNotification(match, actingUserId) {
       });
     }
   } catch (error) {
-    console.error('[Notification] sendMatchCompletedNotification error:', error.message);
+    console.error('[Notification] sendExchangeCompletedNotification error:', error.message);
   }
 }
