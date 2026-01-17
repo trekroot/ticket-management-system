@@ -18,6 +18,7 @@ export const matchInitiatedTemplate = ({ recipientFirstName, initiatorName, tick
         <p><strong>Type:</strong> ${ticketType}</p>
         ${reason ? `<p><strong>User Notes:</strong> ${reason}</p>` : ''}
         <p>Log in to Dirigo Union to review and accept or decline this exchange.</p>
+        <p>Thank you for using the DU Ticket Exchange! <img src="https://www.ticketexchange.me/assets/du-tms-logo-CEbGGye5.png" alt="DU Ticket Exchange Logo" width="50" /></p>
         <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;" />
         <p style="color: #666; font-size: 12px;">Dirigo Union Ticket Exchange</p>
       </div>
@@ -43,6 +44,7 @@ export const matchAcceptedTemplate = ({ recipientFirstName, counterpartyName, co
           ${counterpartyDiscord ? `<li><strong>Discord:</strong> ${counterpartyDiscord}</li>` : ''}
         </ul>
         <p>Please reach out to coordinate the exchange.</p>
+        <p>Thank you for using the DU Ticket Exchange! <img src="https://www.ticketexchange.me/assets/du-tms-logo-CEbGGye5.png" alt="DU Ticket Exchange Logo" width="50" /></p>
         <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;" />
         <p style="color: #666; font-size: 12px;">Dirigo Union Ticket Exchange</p>
       </div>
@@ -61,6 +63,7 @@ export const matchCancelledTemplate = ({ recipientFirstName, otherPartyName, rea
         <p>Your exchange for <strong>${gameInfo}</strong> has been cancelled by <strong>${otherPartyName}</strong>. Visit the <a href="${defaultUrl}">DU Ticket Exchange</a> to find a new match.</p>
         ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
         <p>Your ticket is now available for new matches.</p>
+        <p>Thank you for using the DU Ticket Exchange! <img src="https://www.ticketexchange.me/assets/du-tms-logo-CEbGGye5.png" alt="DU Ticket Exchange Logo" width="50" /></p>
         <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;" />
         <p style="color: #666; font-size: 12px;">Dirigo Union Ticket Exchange</p>
       </div>
@@ -78,7 +81,7 @@ export const exchangeCompletedTemplate = ({ recipientFirstName, otherPartyName, 
         <h2>Exchange Completed!</h2>
         <p>Your ticket exchange for <strong>${gameInfo}</strong> with <strong>${otherPartyName}</strong> has been marked as complete. Visit the <a href="${defaultUrl}">DU Ticket Exchange</a> to review details.</p>
         <p><strong>Type:</strong> ${ticketType}</p>
-        <p>Thank you for using Dirigo Union!</p>
+        <p>Thank you for using the DU Ticket Exchange! <img src="https://www.ticketexchange.me/assets/du-tms-logo-CEbGGye5.png" alt="DU Ticket Exchange Logo" width="50" /></p>
         <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;" />
         <p style="color: #666; font-size: 12px;">Dirigo Union Ticket Exchange</p>
       </div>
