@@ -5,8 +5,10 @@ import {
   matchInitiatedTemplate,
   matchAcceptedTemplate,
   matchCancelledTemplate,
-  exchangeCompletedTemplate as exchangeCompletedTemplate
+  exchangeCompletedTemplate,
+  welcomeTemplate
 } from '../templates/emails.js';
+import { getNumTickets } from '../utils/ticketHelper.js';
 
 /**
  * Notification Service
@@ -84,6 +86,37 @@ function getActorOfTicketUpdate(actingUserId, initiatorUserId, matchedUserId) {
 }
 
 /**
+ * Send Welcome email to new user - attempt to create awareness for spam filters
+ *
+ *  @param {Object} user - User to notify { _id, email, firstName, lastName, username, discordHandle }
+ * 
+ */
+export async function sendWelcomeEmail(user) {
+  try {
+    const template = welcomeTemplate({
+      firstName: user.firstName,
+      username: user.username
+    });
+
+    const { data, error } = await resend.emails.send({
+      from: EMAIL_FROM,
+      to: user.email,
+      subject: template.subject,
+      html: template.html,
+      text: template.text
+    });
+
+    if (error) {
+      console.error('[Notification] Welcome email to new user failed:', error);
+    } else {
+      console.log('[Notification] Welcome email sent to new user:', data?.id);
+    }
+  } catch (e) {
+    console.error('[Notification] Error sending welcome:', e.message);
+  }
+}
+
+/**
  * Notify when a match is initiated
  * Notifies the matched user that someone wants to trade
  *
@@ -98,11 +131,19 @@ export async function sendMatchInitiatedNotification(matchedTicket, initiatorUse
 
     // Send email if user has email address and hasn't disabled this notification type
     if (matchedUser?.email && matchedUser.settings?.email?.matchInitiated) {
+      // Extract ticket details for email
+      const section = matchedTicket.sectionTypeOffered || matchedTicket.section;
+      const quantity = getNumTickets(matchedTicket);
+      const price = matchedTicket.minPrice;
+
       const template = matchInitiatedTemplate({
         recipientFirstName: matchedUser.firstName,
         initiatorName: getUserDisplayName(initiatorUser),
         ticketType: getTicketType(matchedTicket),
         gameInfo: formatGameInfo(matchedTicket),
+        section,
+        quantity,
+        price,
         reason
       });
 
@@ -110,7 +151,8 @@ export async function sendMatchInitiatedNotification(matchedTicket, initiatorUse
         from: EMAIL_FROM || 'noreply@ticketexchange.me',
         to: matchedUser.email,
         subject: template.subject,
-        html: template.html
+        html: template.html,
+        text: template.text
       });
 
       if (error) {
@@ -167,7 +209,8 @@ export async function sendMatchAcceptedNotification(recipientUser, actingUser, t
           from: EMAIL_FROM,
           to: recipientUser.email,
           subject: template.subject,
-          html: template.html
+          html: template.html,
+          text: template.text
         });
 
         if (error) {
@@ -208,6 +251,7 @@ export async function sendMatchAcceptedNotification(recipientUser, actingUser, t
 export async function sendMatchCancelledNotification(match, actingUserId, reason) {
   try {
     const gameInfo = formatGameInfo(match.initiatorTicketId);
+    const ticketType = getTicketType(match.initiatorTicketId);
     // Get both users with settings
     const [initiatorUser, matchedUser] = await Promise.all([
         User.findById(match.initiatorTicketId.userId).select('email firstName lastName username discordHandle settings'),
@@ -222,14 +266,16 @@ export async function sendMatchCancelledNotification(match, actingUserId, reason
           recipientFirstName: initiatorUser.firstName,
           otherPartyName: getUserDisplayName(matchedUser),
           reason,
-          gameInfo
+          gameInfo,
+          ticketType
         });
 
         const { data, error } = await resend.emails.send({
           from: EMAIL_FROM,
           to: initiatorUser.email,
           subject: template.subject,
-          html: template.html
+          html: template.html,
+          text: template.text
         });
 
         if (error) {
@@ -251,14 +297,16 @@ export async function sendMatchCancelledNotification(match, actingUserId, reason
           recipientFirstName: matchedUser.firstName,
           otherPartyName: getUserDisplayName(initiatorUser),
           reason,
-          gameInfo
+          gameInfo,
+          ticketType
         });
 
         const { data, error } = await resend.emails.send({
           from: EMAIL_FROM,
           to: matchedUser.email,
           subject: template.subject,
-          html: template.html
+          html: template.html,
+          text: template.text
         });
 
         if (error) {
@@ -335,7 +383,8 @@ export async function sendExchangeCompletedNotification(match, actingUserId) {
           from: EMAIL_FROM,
           to: initiatorUser.email,
           subject: template.subject,
-          html: template.html
+          html: template.html,
+          text: template.text
         });
 
         if (error) {
@@ -364,7 +413,8 @@ export async function sendExchangeCompletedNotification(match, actingUserId) {
           from: EMAIL_FROM,
           to: matchedUser.email,
           subject: template.subject,
-          html: template.html
+          html: template.html,
+          text: template.text
         });
 
         if (error) {

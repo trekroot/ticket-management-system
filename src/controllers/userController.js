@@ -2,6 +2,7 @@ import { TicketRequest } from '../models/TicketRequest.js';
 import Match from '../models/Match.js';
 import User from '../models/User.js';
 import { logAdminAction } from '../services/adminAuditService.js';
+import { sendWelcomeEmail } from '../services/notificationService.js';
 
 /**
  * CONTROLLER: userController
@@ -143,6 +144,10 @@ export const createUser = async (req, res) => {
 
     // Create new user
     user = await User.create(req.body);
+
+    sendWelcomeEmail(user).catch(err =>
+      console.error('[User] Send Welcome email error:', err.message)
+    );
 
     res.status(201).json({
       success: true,
