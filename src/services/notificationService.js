@@ -9,6 +9,7 @@ import {
   welcomeTemplate
 } from '../templates/emails.js';
 import { getNumTickets } from '../utils/ticketHelper.js';
+import { getSectionTypeLabel } from '../models/SeatingFormat.js';
 
 /**
  * Notification Service
@@ -132,7 +133,7 @@ export async function sendMatchInitiatedNotification(matchedTicket, initiatorUse
     // Send email if user has email address and hasn't disabled this notification type
     if (matchedUser?.email && matchedUser.settings?.email?.matchInitiated) {
       // Extract ticket details for email
-      const section = matchedTicket.sectionTypeOffered || matchedTicket.section;
+      const section = getSectionTypeLabel(matchedTicket.sectionTypeOffered || matchedTicket.section);
       const quantity = getNumTickets(matchedTicket);
       const price = matchedTicket.minPrice;
 

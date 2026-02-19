@@ -4,14 +4,15 @@
  * sectionTypeDesired/Offered (for matching):
  *   - supporters: sections 118-120
  *   - standard: sections 100-117
- *   - standing_room: SRO
+ *   - standing_room: SRO/GA
  *   - deweys: sections 1-6
  *   - highroller: FC-1 through FC-7
+ *   - goal_zone: SRO/GA
  */
 
 export const SEATING_FORMATS = {
   ga: {
-    sections: [119, 120, 'standing_room'],
+    sections: [119, 120, 'standing_room', 'goal_zone'],
     generalAdmission: true
   },
   standard: {
@@ -54,6 +55,10 @@ export const SECTION_GROUPS = {
   },
   standing_room: {
     label: 'Standing Room',
+    sections: ['General Admission']
+  },
+  goal_zone: {
+    label: 'Goal Zone',
     sections: ['General Admission']
   }
 };
