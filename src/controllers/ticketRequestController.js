@@ -305,26 +305,32 @@ export const createTradeRequest = async (req, res) => {
  */
 export const updateRequest = async (req, res) => {
   try {
-    // first check if the request status is being updated for a ticket in an exchange
-    const query = {
+    // Get ticket before update for audit logging
+    const ticketBefore = await TicketRequest.findById(req.params.id);
+
+    // Only allow editing tickets with 'open' status
+    if (ticketBefore?.status !== 'open') {
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot update ticket. Only open tickets can be edited.'
+      });
+    }
+
+    // Also check if the ticket is in an active exchange
+    const activeMatch = await Match.find({
       $or: [
         { initiatorTicketId: req.params.id },
         { matchedTicketId: req.params.id }
       ],
-      status: {$in: ['initiated', 'accepted']}
-    };
+      status: { $in: ['initiated', 'accepted'] }
+    });
 
-    const match = await Match.find(query);
-
-    if (match && match.length > 0) {
+    if (activeMatch && activeMatch.length > 0) {
       return res.status(400).json({
         success: false,
-        error: 'Cannot update ticket in active exchange! Please contact counterparty or cancel exchange.'
+        error: 'Cannot update ticket in active exchange. Please contact counterparty or cancel exchange.'
       });
     }
-
-    // Get ticket before update for audit logging
-    const ticketBefore = await TicketRequest.findById(req.params.id);
 
     // Prepare update data
     const updateData = { ...req.body };
@@ -334,18 +340,29 @@ export const updateRequest = async (req, res) => {
       updateData.seatsAdjacent = seatsAreAdjacent(req.body);
     }
 
-    // findByIdAndUpdate options:
-    // - new: true returns the updated document (not the old one)
-    // - runValidators: true ensures schema validation runs on update
-    const request = await TicketRequest.findByIdAndUpdate(
+    // Use the correct discriminator model so discriminator-specific fields are recognized
+    const modelMap = {
+      BuyRequest,
+      SellRequest,
+      TradeRequest
+    };
+    const Model = modelMap[ticketBefore.__t] || TicketRequest;
+
+    let query = Model.findByIdAndUpdate(
       req.params.id,
       updateData,
       { new: true, runValidators: true }
-    )
-      .populate('userId', 'discordHandle username firstName lastName email')
-      .populate('gameId', 'opponent date venue tbdTime matchType')
-      .populate('gamesDesired', 'opponent date venue tbdTime matchType')
-      .populate('gamesOffered', 'opponent date venue tbdTime matchType');
+    ).populate('userId', 'discordHandle username firstName lastName email');
+
+    if (ticketBefore.__t === 'BuyRequest' || ticketBefore.__t === 'SellRequest') {
+      query = query.populate('gameId', 'opponent date venue tbdTime matchType');
+    } else if (ticketBefore.__t === 'TradeRequest') {
+      query = query
+        .populate('gamesDesired', 'opponent date venue tbdTime matchType')
+        .populate('gamesOffered', 'opponent date venue tbdTime matchType');
+    }
+
+    const request = await query;
 
     if (!request) {
       return res.status(404).json({
@@ -799,7 +816,7 @@ export function calculatePairingScore(saleTicket, requestTicket) {
     priceStatus = 'donation_match';
     reasons.push('Both are donation/free match (+20)');
     console.log(`  [Price] Both donation: +20`);
-  } else if (isDonation) {
+  } else if (isDonation || wantsFree) {
     score -= 100;
     priceStatus = 'donation_mismatch';
     reasons.push('Seller is donating for free -100, kill match');
