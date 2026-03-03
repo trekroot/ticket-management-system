@@ -56,7 +56,7 @@ export const games = [
   // July
   { _id: '6941fb6bbdc613cbcf74d7f0', opponent: 'New York Cosmos', date: new Date('2026-07-11T23:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL Prinx Tires Cup', isHomeGame: true, tbdTime: false },      // 7:00 PM ET
   { _id: '6941fb6bbdc613cbcf74d7f1', opponent: 'Union Omaha', date: new Date('2026-07-22T23:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: false },               // 7:00 PM ET
-  { _id: '6941fb6bbdc613cbcf74d7f2', opponent: 'Sarasota Paradise', date: new Date('2026-07-26T23:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: false },         // 6:30 PM ET
+  { _id: '6941fb6bbdc613cbcf74d7f2', opponent: 'Sarasota Paradise', date: new Date('2026-07-26T22:30:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'USL League One', isHomeGame: true, tbdTime: false },         // 6:30 PM ET
   
   // August
   { _id: '6941fb6bbdc613cbcf74d7f3', opponent: 'TBD', date: new Date('2026-08-05T23:00:00.000Z'), venue: 'Fitzpatrick Stadium', season: 2026, matchType: 'Friendly', isHomeGame: true, tbdTime: true },                              // 7:00 PM ET
