@@ -28,7 +28,7 @@ const emailFooter = (includeUnsubscribe = true) => `
         Dirigo Union Ticket Exchange
       </p>
       <p style="margin: 0 0 16px 0; color: #a0aec0; font-size: 12px;">
-        Keeping tickets in the community, at face value.
+        The way tickets should be. For the community, reasonably priced.
       </p>
       <p style="margin: 0; color: #718096; font-size: 11px;">
         ${includeUnsubscribe ? `<a href="${defaultUrl}" style="color: #718096; text-decoration: underline;">Manage notifications</a> &nbsp;·&nbsp;` : ''}
@@ -201,7 +201,7 @@ Log in to review and accept or decline: ${defaultUrl}
 
 --
 Dirigo Union Ticket Exchange
-Keeping tickets in the community, at reasonable prices.`;
+The way tickets should be. For the community, reasonably priced.`;
 
   return {
     subject: `New Exchange Request - ${gameInfo}`,
@@ -352,7 +352,7 @@ Lead with your heart.
 
 --
 Dirigo Union Ticket Exchange
-Keeping tickets in the community, at reasonable prices.`;
+The way tickets should be. For the community, reasonably priced.`;
 
   return {
     subject: `Exchange Accepted - ${gameInfo}`,
@@ -478,7 +478,7 @@ Lead with your heart.
 
 --
 Dirigo Union Ticket Exchange
-Keeping tickets in the community, at reasonable prices.`;
+The way tickets should be. For the community, reasonably priced.`;
 
   return {
     subject: `Exchange Cancelled - ${gameInfo}`,
@@ -595,7 +595,7 @@ Lead with your heart.
 
 --
 Dirigo Union Ticket Exchange
-Keeping tickets in the community, at reasonable prices.`;
+The way tickets should be. For the community, reasonably priced.`;
 
   return {
     subject: `Exchange Complete - ${gameInfo}`,
@@ -750,7 +750,7 @@ Lead with your heart.
 
 --
 Dirigo Union Ticket Exchange
-Keeping tickets in the community, at reasonable prices.`;
+The way tickets should be. For the community, reasonably priced.`;
 
   return {
     subject: `You're in the Dirigo Union Ticket Exchange!`,
