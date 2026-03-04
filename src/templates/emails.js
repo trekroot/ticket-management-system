@@ -201,7 +201,7 @@ Log in to review and accept or decline: ${defaultUrl}
 
 --
 Dirigo Union Ticket Exchange
-Keeping tickets in the community, at reasonable prices.`;
+The way tickets should be. For the community, reasonably priced.`;
 
   return {
     subject: `New Exchange Request - ${gameInfo}`,
@@ -352,7 +352,7 @@ Lead with your heart.
 
 --
 Dirigo Union Ticket Exchange
-Keeping tickets in the community, at reasonable prices.`;
+The way tickets should be. For the community, reasonably priced.`;
 
   return {
     subject: `Exchange Accepted - ${gameInfo}`,
@@ -478,7 +478,7 @@ Lead with your heart.
 
 --
 Dirigo Union Ticket Exchange
-Keeping tickets in the community, at reasonable prices.`;
+The way tickets should be. For the community, reasonably priced.`;
 
   return {
     subject: `Exchange Cancelled - ${gameInfo}`,
@@ -595,7 +595,7 @@ Lead with your heart.
 
 --
 Dirigo Union Ticket Exchange
-Keeping tickets in the community, at reasonable prices.`;
+The way tickets should be. For the community, reasonably priced.`;
 
   return {
     subject: `Exchange Complete - ${gameInfo}`,
@@ -750,7 +750,7 @@ Lead with your heart.
 
 --
 Dirigo Union Ticket Exchange
-Keeping tickets in the community, at reasonable prices.`;
+The way tickets should be. For the community, reasonably priced.`;
 
   return {
     subject: `You're in the Dirigo Union Ticket Exchange!`,
