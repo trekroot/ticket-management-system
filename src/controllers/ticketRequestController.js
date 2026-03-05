@@ -659,7 +659,7 @@ function calculateTradePairingScore(tradeA, tradeB) {
     score += gameValue;
     reasons.push('Trades have exact match game(s) (+40)');
   } else if (aOffersWhatBWants && bOffersWhatAWants) {
-    score += gameValue * .5;
+    score += gameValue * .75;
     reasons.push('Trades have complementary games (+20)');
   } else if (aOffersWhatBWants || bOffersWhatAWants) {
     score += gameValue * .25;
